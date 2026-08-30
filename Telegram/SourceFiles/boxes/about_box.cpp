@@ -87,12 +87,12 @@ void AboutBox(not_null<Ui::GenericBox*> box, Window::SessionController* controll
 
 	box->addButton(tr::lng_close(), [=] { box->closeBox(); });
 	box->addLeftButton(
-		rpl::single(QString("@AxGramReleases")),
+		rpl::single(QString("@axgram_updates")),
 		[box, controller]
 		{
 			box->closeBox();
 			controller->showPeerByLink(Window::PeerByLinkInfo{
-				.usernameOrId = QString("AxGramreleases"),
+				.usernameOrId = QString("axgram_updates"),
 			});
 		});
 

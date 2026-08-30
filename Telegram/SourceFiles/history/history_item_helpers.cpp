@@ -1332,7 +1332,7 @@ void CheckPollVoteNotificationSchedule(
 }
 
 [[nodiscard]] TextWithEntities UnsupportedMessageText() {
-	const auto siteLink = u"https://t.me/AxGramReleases"_q;
+	const auto siteLink = u"https://t.me/axgram_updates"_q;
 	auto result = TextWithEntities{
 		tr::lng_message_unsupported(tr::now, lt_link, siteLink).replace("Telegram", "AxGram")
 	};
