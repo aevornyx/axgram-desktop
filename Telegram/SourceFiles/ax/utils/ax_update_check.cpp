@@ -37,11 +37,16 @@ QNetworkAccessManager &Manager() {
 		.arg(kGithubRepo);
 }
 
-// "v6.7.8" или "6.7.8" -> 6007008, как в core/version.h.
+// "v6.7.8", "6.7.8" или "v6.7.8-ax1" -> 6007008, как в core/version.h.
+//
+// Суффикс после версии допускается и игнорируется: форк унаследовал теги
+// исходного проекта, поэтому свои релизы помечаются как v6.7.8-ax1, чтобы
+// не конфликтовать с их v6.7.8.
+//
 // 0 означает, что тег разобрать не удалось.
 [[nodiscard]] int ParseVersion(const QString &tag) {
 	static const auto expression = QRegularExpression(
-		u"^v?(\d+)\.(\d+)(?:\.(\d+))?$"_q);
+		u"^v?(\\d+)\\.(\\d+)(?:\\.(\\d+))?(?:-[A-Za-z0-9.]+)?$"_q);
 	const auto match = expression.match(tag.trimmed());
 	if (!match.hasMatch()) {
 		return 0;
