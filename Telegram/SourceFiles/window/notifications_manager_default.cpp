@@ -44,9 +44,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 
-// AyuGram includes
-#include "ayu/utils/telegram_helpers.h"
-#include "ayu/features/streamer_mode/streamer_mode.h"
+// AxGram includes
+#include "ax/utils/telegram_helpers.h"
+#include "ax/features/streamer_mode/streamer_mode.h"
 
 
 namespace Window {
@@ -729,8 +729,8 @@ Notification::Notification(
 
 	show();
 
-	if (AyuFeatures::StreamerMode::isEnabled()) {
-		AyuFeatures::StreamerMode::hideWidgetWindow(this);
+	if (AxFeatures::StreamerMode::isEnabled()) {
+		AxFeatures::StreamerMode::hideWidgetWindow(this);
 	}
 }
 
@@ -1022,7 +1022,7 @@ void Notification::updateNotifyDisplay() {
 				: TextWithEntities{ name };
 		};
 		auto title = options.hideNameAndPhoto
-			? TextWithEntities{ u"AyuGram Desktop"_q }
+			? TextWithEntities{ u"AxGram Desktop"_q }
 			: reminder
 			? tr::lng_notification_reminder(tr::now, tr::marked)
 			: topicWithChat();
@@ -1289,8 +1289,8 @@ HideAllButton::HideAllButton(
 
 	show();
 
-	if (AyuFeatures::StreamerMode::isEnabled()) {
-		AyuFeatures::StreamerMode::hideWidgetWindow(this);
+	if (AxFeatures::StreamerMode::isEnabled()) {
+		AxFeatures::StreamerMode::hideWidgetWindow(this);
 	}
 }
 

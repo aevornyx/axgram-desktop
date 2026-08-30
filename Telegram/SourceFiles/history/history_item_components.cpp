@@ -61,8 +61,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtGui/QGuiApplication>
 
-// AyuGram includes
-#include "ayu/features/filters/filters_controller.h"
+// AxGram includes
+#include "ax/features/filters/filters_controller.h"
 
 namespace {
 
@@ -693,7 +693,7 @@ QString ReplyMarkupClickHandler::copyToClipboardContextItemText() const {
 	if (button) {
 		using Type = HistoryMessageMarkupButton::Type;
 		if (button->type == Type::Callback) {
-			return tr::ayu_ContextCopyCallbackData(tr::now);
+			return tr::ax_ContextCopyCallbackData(tr::now);
 		}
 		return tr::lng_context_copy_link(tr::now);
 	}

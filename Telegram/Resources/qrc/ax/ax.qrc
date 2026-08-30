@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/gui">
+        <file alias="langs/ax/ru.json">../../langs/ax/ru.json</file>
+        <file alias="art/ax/alt/app.svg">../../art/ax/alt/app.svg</file>
+        <file alias="art/ax/alt/app_icon.ico">../../art/ax/alt/app_icon.ico</file>
+        <file alias="art/ax/bard/app.svg">../../art/ax/bard/app.svg</file>
+        <file alias="art/ax/bard/app_icon.ico">../../art/ax/bard/app_icon.ico</file>
+        <file alias="art/ax/default/app.svg">../../art/ax/default/app.svg</file>
+        <file alias="art/ax/default/app_icon.ico">../../art/ax/default/app_icon.ico</file>
+        <file alias="art/ax/discord/app.svg">../../art/ax/discord/app.svg</file>
+        <file alias="art/ax/discord/app_icon.ico">../../art/ax/discord/app_icon.ico</file>
+        <file alias="art/ax/nothing/app.svg">../../art/ax/nothing/app.svg</file>
+        <file alias="art/ax/nothing/app_icon.ico">../../art/ax/nothing/app_icon.ico</file>
+        <file alias="art/ax/spotify/app.svg">../../art/ax/spotify/app.svg</file>
+        <file alias="art/ax/spotify/app_icon.ico">../../art/ax/spotify/app_icon.ico</file>
+        <file alias="art/ax/win95/app.svg">../../art/ax/win95/app.svg</file>
+        <file alias="art/ax/win95/app_icon.ico">../../art/ax/win95/app_icon.ico</file>
+        <file alias="art/ax/yaplus/app.svg">../../art/ax/yaplus/app.svg</file>
+        <file alias="art/ax/yaplus/app_icon.ico">../../art/ax/yaplus/app_icon.ico</file>
+        <file alias="icons/ax/nocover.svg">../../icons/ax/nocover.svg</file>
+    </qresource>
+</RCC>

@@ -58,8 +58,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtWidgets/QApplication>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 
 
 namespace ChatHelpers {
@@ -2877,7 +2877,7 @@ void EmojiListWidget::refreshCustom() {
 		&& !_allowWithoutPremium;
 	const auto owner = &session->data();
 	const auto &sets = owner->stickers().sets();
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 	const auto push = [&](uint64 setId, bool installed) {
 		const auto megagroup = _megagroupSet
 			&& (setId == Data::Stickers::MegagroupSetId);

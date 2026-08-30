@@ -22,8 +22,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "styles/style_chat_helpers.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 
 
 namespace Ui {
@@ -39,7 +39,7 @@ base::options::toggle HideAiButtonOption({
 bool HasEnoughLinesForAi(
 		not_null<Main::Session*> session,
 		not_null<Ui::InputField*> field) {
-	if (!AyuSettings::getInstance().showAiEditorButtonInMessageField()
+	if (!AxSettings::getInstance().showAiEditorButtonInMessageField()
 		|| session->appConfig().aiComposeStyles().empty()) {
 		return false;
 	}
@@ -183,7 +183,7 @@ auto SetupCaptionAiButton(SetupCaptionAiButtonArgs &&args)
 		field->heightChanges() | rpl::to_empty,
 		field->changes() | rpl::to_empty,
 		field->shownValue() | rpl::to_empty,
-		AyuSettings::getInstance().showAiEditorButtonInMessageFieldChanges()
+		AxSettings::getInstance().showAiEditorButtonInMessageFieldChanges()
 			| rpl::to_empty
 	) | rpl::on_next([=] {
 		updateVisibility();

@@ -50,9 +50,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
 
-// AyuGram includes
-#include "ayu/features/filters/filters_controller.h"
-#include "styles/style_ayu_icons.h"
+// AxGram includes
+#include "ax/features/filters/filters_controller.h"
+#include "styles/style_ax_icons.h"
 
 
 namespace Dialogs::Ui {
@@ -816,12 +816,12 @@ void PaintRow(
 				: context.selected
 				? &st::dialogsVerifiedIconOver
 				: &st::dialogsVerifiedIcon),
-			.exteraOfficial = &ThreeStateIcon(
-				st::dialogsExteraOfficialIcon,
+			.axOfficial = &ThreeStateIcon(
+				st::dialogsAxOfficialIcon,
 				context.active,
 				context.selected),
-			.exteraSupporter = &ThreeStateIcon(
-				st::dialogsExteraSupporterIcon,
+			.axSupporter = &ThreeStateIcon(
+				st::dialogsAxSupporterIcon,
 				context.active,
 				context.selected),
 			.premium = &ThreeStateIcon(

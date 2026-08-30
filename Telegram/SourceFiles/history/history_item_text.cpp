@@ -16,7 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "ui/text/text_options.h"
 
-// AyuGram includes
+// AxGram includes
 #include "api/api_transcribes.h"
 
 

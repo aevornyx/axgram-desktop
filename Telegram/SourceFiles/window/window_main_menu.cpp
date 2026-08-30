@@ -80,14 +80,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
-#include "ayu/features/streamer_mode/streamer_mode.h"
-#include "styles/style_ayu_icons.h"
+#include "ax/features/streamer_mode/streamer_mode.h"
+#include "styles/style_ax_icons.h"
 #include "lang_auto.h"
-#include "ayu/ui/settings/settings_main.h"
+#include "ax/ui/settings/settings_main.h"
 
 namespace Window {
 namespace {
@@ -110,7 +110,7 @@ constexpr auto kPlayStatusLimit = 12;
 
 [[nodiscard]] rpl::producer<TextWithEntities> SetStatusLabel(
 		not_null<Main::Session*> session) {
-	return tr::ayu_AyuPreferences() | rpl::map([](const QString& text) {
+	return tr::ax_AxPreferences() | rpl::map([](const QString& text) {
 		return tr::link(text);
 	});
 }
@@ -322,15 +322,15 @@ MainMenu::MainMenu(
 	[=] { return controller->isGifPausedAtLeastFor(GifPauseReason::Layer); },
 	kPlayStatusLimit,
 	Info::Profile::BadgeType::Premium))
-, _exteraBadge(std::make_unique<Info::Profile::Badge>(
+, _axBadge(std::make_unique<Info::Profile::Badge>(
 	this,
 	st::infoPeerBadge,
 	&controller->session(),
-	ExteraBadgeTypeFromPeer(controller->session().user()),
+	AxBadgeTypeFromPeer(controller->session().user()),
 	nullptr,
 	[=] { return controller->isGifPausedAtLeastFor(GifPauseReason::Layer); },
 	0,
-	Info::Profile::BadgeType::Extera | Info::Profile::BadgeType::ExteraSupporter | Info::Profile::BadgeType::ExteraCustom))
+	Info::Profile::BadgeType::Ax | Info::Profile::BadgeType::AxSupporter | Info::Profile::BadgeType::AxCustom))
 , _scroll(this, st::defaultSolidScroll)
 , _inner(_scroll->setOwnedWidget(
 	object_ptr<Ui::VerticalLayout>(_scroll.data())))
@@ -390,10 +390,7 @@ MainMenu::MainMenu(
 
 	parentResized();
 
-	_telegram->setMarkedText(tr::link(
-		u"AyuGram Desktop"_q,
-		u"https://ayugram.one"_q));
-	_telegram->setLinksTrusted();
+	_telegram->setMarkedText(TextWithEntities{ u"AxGram Desktop"_q });
 	_version->setMarkedText(
 		tr::link(
 			tr::lng_settings_current_version(
@@ -417,7 +414,7 @@ MainMenu::MainMenu(
 	rpl::combine(
 		_toggleAccounts->rightSkipValue(),
 		rpl::single(rpl::empty) | rpl::then(_badge->updated()),
-		rpl::single(rpl::empty) | rpl::then(_exteraBadge->updated())
+		rpl::single(rpl::empty) | rpl::then(_axBadge->updated())
 	) | rpl::on_next([=] {
 		moveBadge();
 	}, lifetime());
@@ -427,10 +424,10 @@ MainMenu::MainMenu(
 	{
 		const auto user = controller->session().user();
 		const auto isCustomBadge = isCustomBadgePeer(getBareID(user));
-		const auto isExtera = isExteraPeer(getBareID(user));
+		const auto isAx = isAxPeer(getBareID(user));
 		const auto isSupporter = isSupporterPeer(getBareID(user));
-		if (isExtera || isSupporter || isCustomBadge) {
-			_exteraBadge->setPremiumClickCallback(badgeClickHandler(user));
+		if (isAx || isSupporter || isCustomBadge) {
+			_axBadge->setPremiumClickCallback(badgeClickHandler(user));
 		}
 	}
 
@@ -486,20 +483,20 @@ void MainMenu::moveBadge() {
 	const auto badgeWidth = _badge->widget()
 		? _badge->widget()->width()
 		: 0;
-	const auto exteraBadgeWidth = _exteraBadge->widget()
-		? _exteraBadge->widget()->width()
+	const auto axBadgeWidth = _axBadge->widget()
+		? _axBadge->widget()->width()
 		: 0;
-	if (!badgeWidth && !exteraBadgeWidth) {
+	if (!badgeWidth && !axBadgeWidth) {
 		return;
 	}
 	const auto nameGap = badgeWidth ? st::semiboldFont->spacew : 0;
-	const auto exteraGap = exteraBadgeWidth
+	const auto axGap = axBadgeWidth
 		? st::infoVerifiedCheckPosition.x()
 		: 0;
 	const auto reserved = nameGap
 		+ badgeWidth
-		+ exteraGap
-		+ exteraBadgeWidth;
+		+ axGap
+		+ axBadgeWidth;
 	const auto available = width()
 		- st::mainMenuCoverNameLeft
 		- _toggleAccounts->rightSkip()
@@ -513,8 +510,8 @@ void MainMenu::moveBadge() {
 			st::mainMenuCoverNameTop,
 			st::mainMenuCoverNameTop + st::semiboldFont->height);
 	}
-	if (_exteraBadge->widget()) {
-		_exteraBadge->move(
+	if (_axBadge->widget()) {
+		_axBadge->move(
 			nameEnd + nameGap + badgeWidth,
 			st::mainMenuCoverNameTop,
 			st::mainMenuCoverNameTop + st::semiboldFont->height);
@@ -666,7 +663,7 @@ void MainMenu::setupAccountsToggle() {
 
 void MainMenu::setupSetEmojiStatus() {
 	_setEmojiStatus->overrideLinkClickHandler([=] {
-		_controller->showSettings(Settings::AyuMain::Id());
+		_controller->showSettings(Settings::AxMain::Id());
 	});
 }
 
@@ -689,7 +686,7 @@ void MainMenu::showFinished() {
 void MainMenu::setupMenu() {
 	using namespace Settings;
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 
 	const auto controller = _controller;
 	const auto addAction = [&](
@@ -766,11 +763,11 @@ void MainMenu::setupMenu() {
 
 		if (settings.showLReadToggleInDrawer()) {
 			addAction(
-				tr::ayu_LReadMessages(),
-				{&st::ayuLReadMenuIcon}
+				tr::ax_LReadMessages(),
+				{&st::axLReadMenuIcon}
 			)->setClickedCallback([=]() mutable
 			{
-				auto &ghost = AyuSettings::ghost(&controller->session());
+				auto &ghost = AxSettings::ghost(&controller->session());
 				const auto prev = ghost.sendReadMessages();
 				ghost.setSendReadMessages(false);
 
@@ -783,7 +780,7 @@ void MainMenu::setupMenu() {
 
 		if (settings.showSReadToggleInDrawer()) {
 			auto callback = [=](Fn<void()> &&close) mutable {
-				auto &ghost = AyuSettings::ghost(&controller->session());
+				auto &ghost = AxSettings::ghost(&controller->session());
 				const auto prev = ghost.sendReadMessages();
 				ghost.setSendReadMessages(true);
 
@@ -792,21 +789,21 @@ void MainMenu::setupMenu() {
 
 				// slight delay for forums to send packets
 				dispatchToMainThread(crl::guard(controller, [=] {
-					auto &ghost = AyuSettings::ghost(&controller->session());
+					auto &ghost = AxSettings::ghost(&controller->session());
 					ghost.setSendReadMessages(prev);
 				}), 200);
 				close();
 			};
 
 			addAction(
-				tr::ayu_SReadMessages(),
-				{&st::ayuSReadMenuIcon}
+				tr::ax_SReadMessages(),
+				{&st::axSReadMenuIcon}
 			)->setClickedCallback([=]
 			{
 				auto box = Ui::MakeConfirmBox({
-					.text = tr::ayu_ReadConfirmationBoxQuestion(),
+					.text = tr::ax_ReadConfirmationBoxQuestion(),
 					.confirmed = callback,
-					.confirmText = tr::ayu_ReadConfirmationBoxActionText()
+					.confirmText = tr::ax_ReadConfirmationBoxActionText()
 				});
 				Ui::show(std::move(box));
 			});
@@ -885,22 +882,22 @@ void MainMenu::setupMenu() {
 	}
 
 	if (settings.showGhostToggleInDrawer()) {
-		auto ghostActiveChanges = AyuSettings::getInstance().useGlobalGhostModeValue()
+		auto ghostActiveChanges = AxSettings::getInstance().useGlobalGhostModeValue()
 			| rpl::map([controller = _controller](bool) {
-				return AyuSettings::ghost(&controller->session()).ghostModeActiveValue();
+				return AxSettings::ghost(&controller->session()).ghostModeActiveValue();
 			})
 			| rpl::flatten_latest();
 
 		const auto ghostModeToggle = addAction(
-			tr::ayu_GhostModeToggle(),
-			{&st::ayuGhostIcon}
+			tr::ax_GhostModeToggle(),
+			{&st::axGhostIcon}
 		)->toggleOn(std::move(ghostActiveChanges));
 
 		ghostModeToggle->toggledChanges(
 		) | rpl::on_next(
 			[controller = _controller](bool ghostMode)
 			{
-				auto &ghost = AyuSettings::ghost(&controller->session());
+				auto &ghost = AxSettings::ghost(&controller->session());
 				ghost.setGhostModeEnabled(ghostMode);
 			},
 			ghostModeToggle->lifetime());
@@ -908,18 +905,18 @@ void MainMenu::setupMenu() {
 
 	if (settings.showStreamerToggleInDrawer()) {
 		const auto streamerModeToggle = addAction(
-			tr::ayu_StreamerModeToggle(),
-			{&st::ayuStreamerModeMenuIcon}
-		)->toggleOn(rpl::single(AyuFeatures::StreamerMode::isEnabled()));
+			tr::ax_StreamerModeToggle(),
+			{&st::axStreamerModeMenuIcon}
+		)->toggleOn(rpl::single(AxFeatures::StreamerMode::isEnabled()));
 
 		streamerModeToggle->toggledChanges(
 		) | rpl::on_next(
 			[=](bool enabled)
 			{
 				if (enabled) {
-					AyuFeatures::StreamerMode::enable();
+					AxFeatures::StreamerMode::enable();
 				} else {
-					AyuFeatures::StreamerMode::disable();
+					AxFeatures::StreamerMode::disable();
 				}
 			},
 			streamerModeToggle->lifetime());
@@ -1018,17 +1015,17 @@ void MainMenu::drawName(Painter &p) {
 	const auto badgeWidth = _badge->widget()
 		? _badge->widget()->width()
 		: 0;
-	const auto exteraBadgeWidth = _exteraBadge->widget()
-		? _exteraBadge->widget()->width()
+	const auto axBadgeWidth = _axBadge->widget()
+		? _axBadge->widget()->width()
 		: 0;
 	const auto nameGap = badgeWidth ? st::semiboldFont->spacew : 0;
-	const auto exteraGap = exteraBadgeWidth
+	const auto axGap = axBadgeWidth
 		? st::infoVerifiedCheckPosition.x()
 		: 0;
 	const auto reserved = nameGap
 		+ badgeWidth
-		+ exteraGap
-		+ exteraBadgeWidth;
+		+ axGap
+		+ axBadgeWidth;
 	_name.drawLeftElided(
 		p,
 		st::mainMenuCoverNameLeft,

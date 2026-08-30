@@ -20,9 +20,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "styles/style_dialogs.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/features/filters/filters_controller.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/features/filters/filters_controller.h"
 
 
 namespace HistoryView {

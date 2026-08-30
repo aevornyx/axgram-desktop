@@ -63,8 +63,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
 
-// AyuGram includes
-#include "ayu/features/forward/ayu_forward.h"
+// AxGram includes
+#include "ax/features/forward/ax_forward.h"
 
 
 class ShareBox::Inner final : public Ui::RpWidget {
@@ -1746,7 +1746,7 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 			&& result.front()->peer()->isSelf()
 			&& history->session().premium();
 
-		// AyuGram-changed
+		// AxGram-changed
 		const auto dismiss = [=]
 		{
 			if (show->valid()) {
@@ -1754,10 +1754,10 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 			}
 		};
 
-		if (AyuForward::isFullAyuForwardNeeded(items.front())) {
+		if (AxForward::isFullAxForwardNeeded(items.front())) {
 			crl::async([=]{
 				for (const auto thread : result) {
-					AyuForward::forwardMessages(
+					AxForward::forwardMessages(
 					&history->owner().session(),
 					Api::SendAction(thread, options),
 					false,
@@ -1767,11 +1767,11 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 
 			dismiss();
 			return;
-		} else if (AyuForward::isAyuForwardNeeded(items)) {
+		} else if (AxForward::isAxForwardNeeded(items)) {
 			crl::async([=]
 			{
 				for (const auto thread : result) {
-					AyuForward::intelligentForward(
+					AxForward::intelligentForward(
 						&history->owner().session(),
 						Api::SendAction(thread, options),
 						Data::ResolvedForwardDraft(items, forwardOptions));
@@ -1781,7 +1781,7 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 			dismiss();
 			return;
 		}
-		// AyuGram-changed
+		// AxGram-changed
 
 		for (const auto &thread : result) {
 			const auto peer = thread->peer();

@@ -31,10 +31,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "apiwrap.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/ayu_worker.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/ax_worker.h"
+#include "ax/utils/telegram_helpers.h"
 
 
 namespace Data {
@@ -679,10 +679,10 @@ void Histories::reportPendingDeliveries() {
 void Histories::sendReadRequests() {
 	DEBUG_LOG(("Reading: send requests with count %1.").arg(_states.size()));
 
-	// AyuGram sendReadMessages
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
+	// AxGram sendReadMessages
+	const auto &ghost = AxSettings::ghost(&_owner->session());
 	if (!ghost.sendReadMessages()) {
-		DEBUG_LOG(("[AyuGram] Don't read messages"));
+		DEBUG_LOG(("[AxGram] Don't read messages"));
 		_states.clear();
 		return;
 	}
@@ -1148,7 +1148,7 @@ int Histories::sendPreparedMessage(
 					const MTPUpdates &result,
 					const MTP::Response &response) {
 				api->applyUpdates(result, randomId);
-				AyuWorker::markAsOnline(&history->owner().session());
+				AxWorker::markAsOnline(&history->owner().session());
 				done(result, response);
 				finish();
 			}).fail([=](

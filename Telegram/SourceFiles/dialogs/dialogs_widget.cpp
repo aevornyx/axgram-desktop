@@ -99,10 +99,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QScrollBar>
 #include <QtWidgets/QTextEdit>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/utils/taptic_engine/taptic_engine.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/utils/taptic_engine/taptic_engine.h"
+#include "ax/utils/telegram_helpers.h"
 
 
 namespace Dialogs {
@@ -1000,7 +1000,7 @@ void Widget::chosenRow(const ChosenRow &row) {
 		&& (row.message.fullId.msg == ShowAtUnreadMsgId)
 		&& history->peer->hasActiveStories()
 		&& !history->peer->isSelf()
-		&& !AyuSettings::getInstance().disableStories()) {
+		&& !AxSettings::getInstance().disableStories()) {
 		controller()->openPeerStories(history->peer->id);
 		return;
 	} else if (history
@@ -1434,7 +1434,7 @@ void Widget::setupMainMenuToggle() {
 			? &st::dialogsMenuToggleUnread
 			: &st::dialogsMenuToggleUnreadMuted;
 
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = AxSettings::getInstance();
 		if (settings.hideNotificationCounters()) {
 			icon = nullptr;
 		}
@@ -1444,8 +1444,8 @@ void Widget::setupMainMenuToggle() {
 }
 
 void Widget::setupStories() {
-	// AyuGram disableStories
-	const auto &settings = AyuSettings::getInstance();
+	// AxGram disableStories
+	const auto &settings = AxSettings::getInstance();
 	if (settings.disableStories()) {
 		return;
 	}
@@ -2226,7 +2226,7 @@ void Widget::checkUpdateStatus() {
 		}
 		_updateTelegram.create(
 			this,
-			tr::ayu_UpdateAyuGram(tr::now),
+			tr::ax_UpdateApp(tr::now),
 			st::dialogsUpdateButton,
 			st::dialogsInstallUpdate,
 			st::dialogsInstallUpdateOver,
@@ -2427,7 +2427,7 @@ void Widget::updateStoriesVisibility() {
 		return;
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 	if (settings.disableStories()) {
 		_stories->setVisible(false);
 		return;

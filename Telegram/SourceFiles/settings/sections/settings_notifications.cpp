@@ -61,8 +61,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QScreen>
 #include <QSvgRenderer>
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
 
 
 namespace Settings {
@@ -448,7 +448,7 @@ void NotificationsCount::prepareNotificationSampleSmall() {
 		auto padding = height / 8;
 		auto userpicSize = height - 2 * padding;
 		p.setBrush(st::notificationSampleUserpicFg);
-		AyuUserpic::PaintShape(p, QRectF(style::rtlrect(padding, padding, userpicSize, userpicSize, width)));
+		AxUserpic::PaintShape(p, QRectF(style::rtlrect(padding, padding, userpicSize, userpicSize, width)));
 
 		auto rowLeft = height;
 		auto rowHeight = padding;
@@ -514,7 +514,7 @@ void NotificationsCount::prepareNotificationSampleLarge() {
 		p.setPen(st::dialogsNameFg);
 		p.setFont(st::msgNameFont);
 
-		auto notifyTitle = st::msgNameFont->elided(u"AyuGram Desktop"_q, rectForName.width());
+		auto notifyTitle = st::msgNameFont->elided(u"AxGram Desktop"_q, rectForName.width());
 		p.drawText(rectForName.left(), rectForName.top() + st::msgNameFont->ascent, notifyTitle);
 
 		st::notifyClose.icon.paint(p, w - st::notifyClosePos.x() - st::notifyClose.width + st::notifyClose.iconPosition.x(), st::notifyClosePos.y() + st::notifyClose.iconPosition.y(), w);
@@ -805,7 +805,7 @@ void NotifyPreview::paint(Painter &p, int x, int y) {
 		QSize{ st::notifyPreviewUserpicSize, st::notifyPreviewUserpicSize });
 
 	if (_nameShown) {
-		const auto r = AyuUserpic::ComputeRadiusF(userpic.width());
+		const auto r = AxUserpic::ComputeRadiusF(userpic.width());
 		auto clip = QPainterPath();
 		clip.addRoundedRect(QRectF(userpic), r, r);
 		p.save();

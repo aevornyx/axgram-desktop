@@ -24,8 +24,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtWidgets/QApplication>
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
 
 
 namespace Dialogs {
@@ -841,7 +841,7 @@ void TopPeersStrip::paintUserpic(
 		pen.setWidthF(stroke * online);
 		q.setPen(pen);
 		q.setBrush(st::dialogsOnlineBadgeFg);
-		const auto badge = AyuUserpic::OnlineBadgePosition(size, onlineSize, stroke);
+		const auto badge = AxUserpic::OnlineBadgePosition(size, onlineSize, stroke);
 		q.drawEllipse(QRectF(
 			badge.x(),
 			badge.y(),

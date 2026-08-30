@@ -20,9 +20,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/unread_badge_paint.h"
 #include "styles/style_dialogs.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/utils/telegram_helpers.h"
 #include "styles/style_info.h"
 
 
@@ -155,7 +155,7 @@ PeerBadge::~PeerBadge() = default;
 int PeerBadge::drawGetWidth(Painter &p, Descriptor &&descriptor) {
 	Expects(descriptor.customEmojiRepaint != nullptr);
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 	const auto hidePremiumStatuses = settings.hidePremiumStatuses();
 
 	const auto peer = descriptor.peer;
@@ -183,29 +183,29 @@ int PeerBadge::drawGetWidth(Painter &p, Descriptor &&descriptor) {
 	const auto paintStar = premiumStar && !paintVerify
 		&& !hidePremiumStatuses;
 
-	const auto paintExteraCustom =
+	const auto paintAxCustom =
 		isCustomBadgePeer(getBareID(peer)) && !hidePremiumStatuses;
-	const auto paintExteraDev = isExteraPeer(getBareID(peer))
-		&& !paintExteraCustom
+	const auto paintAxDev = isAxPeer(getBareID(peer))
+		&& !paintAxCustom
 		&& !hidePremiumStatuses;
-	const auto paintExteraSupporter = !paintExteraDev
+	const auto paintAxSupporter = !paintAxDev
 		&& isSupporterPeer(getBareID(peer))
-		&& !paintExteraCustom
+		&& !paintAxCustom
 		&& !hidePremiumStatuses;
-	const auto paintExtera = paintExteraDev || paintExteraSupporter;
-	auto exteraWidth = 0;
-	if (paintExteraDev) {
-		exteraWidth = descriptor.exteraOfficial->width();
-	} else if (paintExteraSupporter) {
-		exteraWidth = descriptor.exteraSupporter->width();
+	const auto paintAx = paintAxDev || paintAxSupporter;
+	auto axWidth = 0;
+	if (paintAxDev) {
+		axWidth = descriptor.axOfficial->width();
+	} else if (paintAxSupporter) {
+		axWidth = descriptor.axSupporter->width();
 	}
 	const auto customEmojiSkip = (st::emojiSize
 		- Ui::Text::AdjustCustomEmojiSize(st::emojiSize)) / 2;
-	const auto exteraCustomWidth = paintExteraCustom
+	const auto axCustomWidth = paintAxCustom
 		? descriptor.premium->width() - 4 * customEmojiSkip
 		: 0;
 	const auto verifyWidth = paintVerify ? descriptor.verified->width() : 0;
-	const auto verifyAfterEmojiWidth = (paintVerify && !paintExtera)
+	const auto verifyAfterEmojiWidth = (paintVerify && !paintAx)
 		? verifyWidth
 		: 0;
 
@@ -215,34 +215,34 @@ int PeerBadge::drawGetWidth(Painter &p, Descriptor &&descriptor) {
 		if (verifyAfterEmojiWidth) {
 			rectForName.setWidth(rectForName.width() - verifyAfterEmojiWidth);
 		}
-		if (paintExteraCustom) {
-			rectForName.setWidth(rectForName.width() - exteraCustomWidth);
+		if (paintAxCustom) {
+			rectForName.setWidth(rectForName.width() - axCustomWidth);
 		}
-		if (paintExtera) {
-			rectForName.setWidth(rectForName.width() - exteraWidth);
+		if (paintAx) {
+			rectForName.setWidth(rectForName.width() - axWidth);
 		}
 		result += drawPremiumEmojiStatus(p, descriptor);
-		if (!paintVerify && !paintExteraCustom && !paintExtera) {
+		if (!paintVerify && !paintAxCustom && !paintAx) {
 			return result;
 		}
 		if (verifyAfterEmojiWidth) {
 			rectForName.setWidth(rectForName.width() + verifyAfterEmojiWidth);
 		}
-		if (paintExteraCustom) {
-			rectForName.setWidth(rectForName.width() + exteraCustomWidth);
+		if (paintAxCustom) {
+			rectForName.setWidth(rectForName.width() + axCustomWidth);
 		}
-		if (paintExtera) {
-			rectForName.setWidth(rectForName.width() + exteraWidth);
+		if (paintAx) {
+			rectForName.setWidth(rectForName.width() + axWidth);
 		}
 		descriptor.nameWidth += result;
 	}
 
-	if (paintExteraCustom) {
+	if (paintAxCustom) {
 		auto &rectForName = descriptor.rectForName;
 		if (paintVerify) {
 			rectForName.setWidth(rectForName.width() - verifyWidth);
 		}
-		result += drawExteraCustom(p, descriptor);
+		result += drawAxCustom(p, descriptor);
 		if (!paintVerify) {
 			return result;
 		}
@@ -252,18 +252,18 @@ int PeerBadge::drawGetWidth(Painter &p, Descriptor &&descriptor) {
 		descriptor.nameWidth += result;
 	}
 
-	if (paintExtera) {
+	if (paintAx) {
 		if (paintStar) {
 			auto &rectForName = descriptor.rectForName;
-			rectForName.setWidth(rectForName.width() - exteraWidth);
+			rectForName.setWidth(rectForName.width() - axWidth);
 			result += drawPremiumStar(p, descriptor);
-			rectForName.setWidth(rectForName.width() + exteraWidth);
+			rectForName.setWidth(rectForName.width() + axWidth);
 			descriptor.nameWidth += result;
 		}
-		if (paintExteraDev) {
-			result += drawExteraOfficial(p, descriptor);
+		if (paintAxDev) {
+			result += drawAxOfficial(p, descriptor);
 		} else {
-			result += drawExteraSupporter(p, descriptor);
+			result += drawAxSupporter(p, descriptor);
 		}
 		return result;
 	}
@@ -364,7 +364,7 @@ int PeerBadge::drawPremiumEmojiStatus(
 	return iconw - 4 * _emojiStatus->skip;
 }
 
-int PeerBadge::drawExteraCustom(
+int PeerBadge::drawAxCustom(
 		Painter &p,
 		const Descriptor &descriptor) {
 	const auto peer = descriptor.peer;
@@ -374,31 +374,31 @@ int PeerBadge::drawExteraCustom(
 	const auto iconx = rectForName.x()
 		+ qMin(descriptor.nameWidth, rectForName.width() - iconw);
 	const auto icony = rectForName.y();
-	if (!_exteraCustomStatus) {
-		_exteraCustomStatus = std::make_unique<EmojiStatus>();
+	if (!_axCustomStatus) {
+		_axCustomStatus = std::make_unique<EmojiStatus>();
 		const auto size = st::emojiSize;
 		const auto emoji = Ui::Text::AdjustCustomEmojiSize(size);
-		_exteraCustomStatus->skip = (size - emoji) / 2;
+		_axCustomStatus->skip = (size - emoji) / 2;
 	}
-	if (_exteraCustomStatus->id != id) {
+	if (_axCustomStatus->id != id) {
 		using namespace Ui::Text;
 		auto &manager = peer->session().data().customEmojiManager();
-		_exteraCustomStatus->id = id;
-		_exteraCustomStatus->emoji = std::make_unique<LimitedLoopsEmoji>(
+		_axCustomStatus->id = id;
+		_axCustomStatus->emoji = std::make_unique<LimitedLoopsEmoji>(
 			manager.create(
 				Data::EmojiStatusCustomId(id),
 				descriptor.customEmojiRepaint),
 			kPlayStatusLimit);
 	}
-	_exteraCustomStatus->emoji->paint(p, {
+	_axCustomStatus->emoji->paint(p, {
 		.textColor = (*descriptor.premiumFg)->c,
 		.now = descriptor.now,
 		.position = QPoint(
-			iconx - 2 * _exteraCustomStatus->skip,
-			icony + _exteraCustomStatus->skip),
+			iconx - 2 * _axCustomStatus->skip,
+			icony + _axCustomStatus->skip),
 		.paused = descriptor.paused || On(PowerSaving::kEmojiStatus),
 	});
-	return iconw - 4 * _exteraCustomStatus->skip;
+	return iconw - 4 * _axCustomStatus->skip;
 }
 
 int PeerBadge::drawPremiumStar(Painter &p, const Descriptor &descriptor) {
@@ -412,11 +412,11 @@ int PeerBadge::drawPremiumStar(Painter &p, const Descriptor &descriptor) {
 	return iconw;
 }
 
-int PeerBadge::drawExteraOfficial(Painter &p, const Descriptor &descriptor) {
-	const auto iconw = descriptor.exteraOfficial->width();
+int PeerBadge::drawAxOfficial(Painter &p, const Descriptor &descriptor) {
+	const auto iconw = descriptor.axOfficial->width();
 	const auto rectForName = descriptor.rectForName;
 	const auto nameWidth = descriptor.nameWidth;
-	descriptor.exteraOfficial->paint(
+	descriptor.axOfficial->paint(
 		p,
 		rectForName.x() + qMin(nameWidth, rectForName.width() - iconw),
 		rectForName.y(),
@@ -424,11 +424,11 @@ int PeerBadge::drawExteraOfficial(Painter &p, const Descriptor &descriptor) {
 	return iconw;
 }
 
-int PeerBadge::drawExteraSupporter(Painter &p, const Descriptor &descriptor) {
-	const auto iconw = descriptor.exteraSupporter->width();
+int PeerBadge::drawAxSupporter(Painter &p, const Descriptor &descriptor) {
+	const auto iconw = descriptor.axSupporter->width();
 	const auto rectForName = descriptor.rectForName;
 	const auto nameWidth = descriptor.nameWidth;
-	descriptor.exteraSupporter->paint(
+	descriptor.axSupporter->paint(
 		p,
 		rectForName.x() + qMin(nameWidth, rectForName.width() - iconw),
 		rectForName.y(),
@@ -438,7 +438,7 @@ int PeerBadge::drawExteraSupporter(Painter &p, const Descriptor &descriptor) {
 
 void PeerBadge::unload() {
 	_emojiStatus = nullptr;
-	_exteraCustomStatus = nullptr;
+	_axCustomStatus = nullptr;
 }
 
 bool PeerBadge::ready(const BotVerifyDetails *details) const {

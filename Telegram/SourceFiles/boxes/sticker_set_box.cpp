@@ -77,10 +77,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QClipboard>
 #include <QtSvg/QSvgRenderer>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/utils/telegram_helpers.h"
-#include "styles/style_ayu_styles.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/utils/telegram_helpers.h"
+#include "styles/style_ax_styles.h"
 #include "window/window_session_controller.h"
 #include "data/data_user.h"
 
@@ -900,14 +900,14 @@ void StickerSetBox::updateButtons() {
 		const auto addPackIdActions = [=](Ui::PopupMenu *menu)
 		{
 			if (type == Data::StickersType::Stickers || type == Data::StickersType::Emoji) {
-				const auto &settings = AyuSettings::getInstance();
+				const auto &settings = AxSettings::getInstance();
 				const auto weak = base::make_weak(this);
 				const auto session = _session;
 				const auto setId = _inner->setId();
 				const auto innerId = setId >> 32;
 
 				menu->addAction(
-					tr::ayu_MessageDetailsPackOwnerPC(tr::now),
+					tr::ax_MessageDetailsPackOwnerPC(tr::now),
 					[weak, session, innerId]
 					{
 						if (!weak) {
@@ -935,7 +935,7 @@ void StickerSetBox::updateButtons() {
 
 								if (!user) {
 									QGuiApplication::clipboard()->setText(QString::number(innerId));
-									strongInner->showToast(tr::ayu_IDCopiedToast(tr::now));
+									strongInner->showToast(tr::ax_IDCopiedToast(tr::now));
 									return;
 								}
 
@@ -950,7 +950,7 @@ void StickerSetBox::updateButtons() {
 
 				if (settings.showPeerId() != PeerIdDisplay::Hidden) {
 					menu->addAction(
-						tr::ayu_ContextCopyID(tr::now),
+						tr::ax_ContextCopyID(tr::now),
 						[weak, setId]
 						{
 							if (!weak) {
@@ -963,7 +963,7 @@ void StickerSetBox::updateButtons() {
 							}
 
 							QGuiApplication::clipboard()->setText(QString::number(setId));
-							strongInner->showToast(tr::ayu_IDCopiedToast(tr::now));
+							strongInner->showToast(tr::ax_IDCopiedToast(tr::now));
 						},
 						&st::menuIconCopy);
 				}
@@ -1719,9 +1719,9 @@ void StickerSetBox::Inner::contextMenuEvent(QContextMenuEvent *e) {
 				}
 			}, &st::menuIconCopy);
 
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = AxSettings::getInstance();
 			if (settings.showPeerId() != PeerIdDisplay::Hidden) {
-				_menu->addAction(tr::ayu_ContextCopyID(tr::now),
+				_menu->addAction(tr::ax_ContextCopyID(tr::now),
 								 [=]
 								 {
 									 QGuiApplication::clipboard()->setText(QString::number(_pack[index]->id));

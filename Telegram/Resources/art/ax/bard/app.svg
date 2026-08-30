@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- Логотип AxGram. Буква «A» — та же геометрия, что в мобильной версии
+     (ic_launcher_ax_foreground.xml): две ножки и перекладина, штрих 64,
+     круглые окончания. -->
+<defs><linearGradient id="g" x1="120" y1="120" x2="400" y2="400" gradientUnits="userSpaceOnUse"><stop offset="0.000" stop-color="#1BA1E3"/><stop offset="0.333" stop-color="#9B72CB"/><stop offset="0.667" stop-color="#D96570"/><stop offset="1.000" stop-color="#F49C46"/></linearGradient></defs>
+<circle cx="256" cy="256" r="256" fill="#FDFDFD"/>
+<g stroke-width="64" stroke-linecap="round" stroke-linejoin="round">
+<path d="M256 118 L150 393" stroke="url(#g)"/>
+<path d="M256 118 L362 393" stroke="url(#g)"/>
+<path d="M187 300 L325 300" stroke="url(#g)"/>
+</g>
+</svg>

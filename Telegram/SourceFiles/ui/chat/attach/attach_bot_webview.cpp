@@ -45,9 +45,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QScreen>
 #include <QtGui/qpa/qplatformscreen.h>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "styles/style_ayu_styles.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "styles/style_ax_styles.h"
 
 
 namespace Ui::BotWebView {
@@ -415,7 +415,7 @@ Panel::Panel(Args &&args)
 , _allowClipboardRead(args.allowClipboardRead) {
 	_widget->setWindowFlag(Qt::WindowStaysOnTopHint, false);
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 	auto size = QSize(st::botWebViewPanelSize);
 	if (settings.increaseWebviewHeight()) {
 		size.setHeight(st::botWebViewPanelHeightIncreased);

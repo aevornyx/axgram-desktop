@@ -70,9 +70,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "ui/text/format_values.h" // Ui::FormatPhone
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/ayu_worker.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/ax_worker.h"
 
 
 namespace Api {
@@ -993,8 +993,8 @@ void Updates::updateOnline(crl::time lastNonIdleTime, bool gotOtherOffline) {
 		Core::App().checkAutoLock(lastNonIdleTime);
 	});
 
-	// AyuGram sendOnlinePackets
-	const auto &ghost = AyuSettings::ghost(_session);
+	// AxGram sendOnlinePackets
+	const auto &ghost = AxSettings::ghost(_session);
 	const auto& config = _session->serverConfig();
 	bool isOnlineOrig = Core::App().hasActiveWindow(&session());
 	bool isOnline = ghost.sendOnlinePackets() && isOnlineOrig;
@@ -2061,7 +2061,7 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 			} else if (d.vstatus().type() == mtpc_userStatusOnline) {
 				cSetOtherOnline(
 					d.vstatus().c_userStatusOnline().vexpires().v);
-				AyuWorker::markAsOnline(_session);
+				AxWorker::markAsOnline(_session);
 			}
 		}
 	} break;

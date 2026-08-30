@@ -1,0 +1,26 @@
+// Часть AxGram для Desktop. Файл изменён.
+//
+// Основано на исходном коде AyuGram for Desktop.
+// Copyright @Radolyn, 2026
+//
+// Распространяется по GNU GPL v3 — см. LICENSE и NOTICE.md.
+#include "ax/utils/taptic_engine/platform/taptic_engine_dummy.h"
+
+#ifndef Q_OS_MAC
+
+namespace TapticEngine {
+namespace Impl {
+
+void generateGeneric() {
+}
+
+void generateAlignment() {
+}
+
+void generateLevelChange() {
+}
+
+}
+}
+
+#endif

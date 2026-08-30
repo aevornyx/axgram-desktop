@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting issues of AyuGram Desktop!
+        Thanks for reporting issues of AxGram Desktop!
 
         To make it easier for us to help you please enter detailed information below.
   - type: textarea
@@ -39,7 +39,7 @@ body:
       required: true
   - type: input
     attributes:
-      label: Version of AyuGram Desktop
+      label: Version of AxGram Desktop
       description: >
         **Don't use 'latest'**, specify actual version.
     validations:
@@ -49,9 +49,9 @@ body:
       label: Installation source
       multiple: false
       options:
-        - Binary from GitHub / @AyuGramReleases channel
-        - Arch Linux (ayugram-desktop / ayugram-desktop-git)
-        - Arch Linux (ayugram-desktop-bin)
+        - Binary from GitHub / @AxGramReleases channel
+        - Arch Linux (axgram-desktop / axgram-desktop-git)
+        - Arch Linux (axgram-desktop-bin)
         - flatpak by 0FL01
         - Other (unofficial) source
     validations:

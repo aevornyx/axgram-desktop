@@ -50,8 +50,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QJsonDocument>
 #include <QtGui/QGuiApplication>
 
-// AyuGram includes
-#include "ayu/ui/settings/settings_main.h"
+// AxGram includes
+#include "ax/ui/settings/settings_main.h"
 #include "settings/settings_builder.h"
 
 
@@ -67,7 +67,7 @@ struct DecodeOptionsResult {
 
 struct ResolvedReferrer {
 	QString controlId;
-	Type section = AyuMain::Id();
+	Type section = AxMain::Id();
 };
 
 [[nodiscard]] QString EncodeOptionsToText(const QString &json) {
@@ -136,15 +136,15 @@ struct ResolvedReferrer {
 [[nodiscard]] QString OptionReferrer(const base::options::option<bool> &option) {
 	const auto &id = option.id();
 	if (id == u"tabbed-panel-show-on-click"_q) {
-		return u"ayu/showEmojiPopup"_q;
+		return u"ax/showEmojiPopup"_q;
 	} else if (id == u"show-peer-id-below-about"_q) {
-		return u"ayu/showPeerId"_q;
+		return u"ax/showPeerId"_q;
 	} else if (id == u"use-small-msg-bubble-radius"_q) {
-		return u"ayu/messageBubbleRadius"_q;
+		return u"ax/messageBubbleRadius"_q;
 	} else if (id == u"unlimited-recent-stickers"_q) {
-		return u"ayu/recentStickersCount"_q;
+		return u"ax/recentStickersCount"_q;
 	} else if (id == u"hide-ai-button"_q) {
-		return u"ayu/showAiEditorButtonInMessageField"_q;
+		return u"ax/showAiEditorButtonInMessageField"_q;
 	}
 	return QString();
 }

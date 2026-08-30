@@ -22,8 +22,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "styles/style_info.h"
 
-// AyuGram includes
-#include "styles/style_ayu_icons.h"
+// AxGram includes
+#include "styles/style_ax_icons.h"
 
 
 namespace Info::Profile {
@@ -32,9 +32,9 @@ namespace {
 [[nodiscard]] bool HasPremiumClick(const Badge::Content &content) {
 	return content.badge == BadgeType::Premium
 		|| (content.badge == BadgeType::Verified && content.emojiStatusId)
-		|| (content.badge == BadgeType::Extera)
-		|| (content.badge == BadgeType::ExteraSupporter)
-		|| (content.badge == BadgeType::ExteraCustom);
+		|| (content.badge == BadgeType::Ax)
+		|| (content.badge == BadgeType::AxSupporter)
+		|| (content.badge == BadgeType::AxCustom);
 }
 
 } // namespace
@@ -111,7 +111,7 @@ void Badge::setContent(Content content) {
 	}());
 	_view->show();
 	switch (_content.badge) {
-	case BadgeType::ExteraCustom:
+	case BadgeType::AxCustom:
 	case BadgeType::Verified:
 	case BadgeType::BotVerified:
 	case BadgeType::Premium: {
@@ -216,11 +216,11 @@ void Badge::setContent(Content content) {
 						: st::attentionButtonFg));
 			}, _view->lifetime());
 	} break;
-	case BadgeType::Extera:
-	case BadgeType::ExteraSupporter: {
-		const auto icon = (_content.badge == BadgeType::Extera
-							   ? &st::infoExteraOfficialBadge
-							   : &st::infoExteraSupporterBadge);
+	case BadgeType::Ax:
+	case BadgeType::AxSupporter: {
+		const auto icon = (_content.badge == BadgeType::Ax
+							   ? &st::infoAxOfficialBadge
+							   : &st::infoAxSupporterBadge);
 		const auto skip = st::infoVerifiedCheckPosition.x();
 		_view->resize(
 			icon->width() + skip,

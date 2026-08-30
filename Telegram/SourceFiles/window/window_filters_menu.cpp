@@ -41,8 +41,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h" // attentionBoxButton
 #include "styles/style_menu_icons.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 
 
 namespace Window {
@@ -168,7 +168,7 @@ void FiltersMenu::setupMainMenuIcon() {
 			? &st::windowFiltersMainMenuUnread
 			: &st::windowFiltersMainMenuUnreadMuted;
 
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = AxSettings::getInstance();
 		if (settings.hideNotificationCounters()) {
 			icon = nullptr;
 		}
@@ -204,8 +204,8 @@ void FiltersMenu::scrollToButton(not_null<Ui::RpWidget*> widget) {
 }
 
 void FiltersMenu::refresh() {
-	// AyuGram hideAllChatsFolder
-	const auto &settings = AyuSettings::getInstance();
+	// AxGram hideAllChatsFolder
+	const auto &settings = AxSettings::getInstance();
 
 	const auto filters = &_session->session().data().chatsFilters();
 	if (!filters->has() || _ignoreRefresh) {
@@ -332,7 +332,7 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 		rpl::combine(
 			Data::UnreadStateValue(&_session->session(), id),
 			Data::IncludeMutedCounterFoldersValue(),
-			AyuSettings::getInstance().hideNotificationCountersValue()
+			AxSettings::getInstance().hideNotificationCountersValue()
 		) | rpl::on_next([=](
 				const Dialogs::UnreadState &state,
 				bool includeMuted,
@@ -496,8 +496,8 @@ void FiltersMenu::applyReorder(
 		return;
 	}
 
-	// AyuGram hideAllChatsFolder
-	const auto &settings = AyuSettings::getInstance();
+	// AxGram hideAllChatsFolder
+	const auto &settings = AxSettings::getInstance();
 
 	const auto filters = &_session->session().data().chatsFilters();
 	const auto &list = filters->list();

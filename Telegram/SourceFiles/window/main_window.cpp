@@ -56,8 +56,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <kurlmimedata.h>
 
-// AyuGram includes
-#include "ayu/ui/ayu_logo.h"
+// AxGram includes
+#include "ax/ui/ax_logo.h"
 
 
 namespace Window {
@@ -127,11 +127,11 @@ const char kOptionNewWindowsSizeAsFirst[] = "new-windows-size-as-first";
 const char kOptionDisableTouchbar[] = "touchbar-disabled";
 
 QImage Logo() {
-	return AyuAssets::currentAppLogo();
+	return AxAssets::currentAppLogo();
 }
 
 QImage LogoNoMargin() {
-	return AyuAssets::currentAppLogo();
+	return AxAssets::currentAppLogo();
 }
 
 const QImage &LogoTelegramDefault() {
@@ -191,7 +191,7 @@ void OverrideApplicationIcon(QImage image) {
 }
 
 QIcon CreateOfficialIcon(Main::Session *session) {
-	return QIcon(Ui::PixmapFromImage(AyuAssets::currentAppLogo()));
+	return QIcon(Ui::PixmapFromImage(AxAssets::currentAppLogo()));
 }
 
 QIcon CreateIcon(Main::Session *session, bool returnNullIfDefault) {
@@ -845,7 +845,7 @@ void MainWindow::updateTitle() {
 		: Dialogs::Key();
 	const auto thread = key ? key.thread() : nullptr;
 	if (!thread) {
-		setTitle((user.isEmpty() ? u"AyuGram"_q : user) + added);
+		setTitle((user.isEmpty() ? u"AxGram"_q : user) + added);
 		return;
 	}
 	const auto history = thread->owningHistory();

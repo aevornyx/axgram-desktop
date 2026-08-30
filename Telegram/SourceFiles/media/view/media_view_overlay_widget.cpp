@@ -118,9 +118,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <kurlmimedata.h>
 
-// AyuGram includes
-#include "ayu/ayu_state.h"
-#include "ayu/features/streamer_mode/streamer_mode.h"
+// AxGram includes
+#include "ax/ax_state.h"
+#include "ax/features/streamer_mode/streamer_mode.h"
 
 
 namespace Media {
@@ -1219,7 +1219,7 @@ bool OverlayWidget::hasCopyMediaRestriction(bool skipPremiumCheck) const {
 			return true;
 		}
 	}
-	// AyuGram: removed; allow downloading any stories
+	// AxGram: removed; allow downloading any stories
 	return false;
 }
 
@@ -1256,7 +1256,7 @@ QSize OverlayWidget::videoSize() const {
 bool OverlayWidget::streamingRequiresControls() const {
 	return !_stories
 		&& _document;
-	// AyuGram: allow vieo messages seeking
+	// AxGram: allow vieo messages seeking
 	//  && (!_document->isAnimation() || _document->isVideoMessage());
 }
 
@@ -4122,10 +4122,10 @@ void OverlayWidget::activate() {
 	QApplication::setActiveWindow(_window);
 	setFocus();
 
-	if (AyuFeatures::StreamerMode::isEnabled()) {
-		AyuFeatures::StreamerMode::hideWidgetWindow(_window);
+	if (AxFeatures::StreamerMode::isEnabled()) {
+		AxFeatures::StreamerMode::hideWidgetWindow(_window);
 	} else {
-		AyuFeatures::StreamerMode::showWidgetWindow(_window);
+		AxFeatures::StreamerMode::showWidgetWindow(_window);
 	}
 }
 
@@ -7934,7 +7934,7 @@ Window::SessionController *OverlayWidget::findWindow(bool switchTo) const {
 
 // #TODO unite and check
 void OverlayWidget::clearBeforeHide() {
-	AyuState::disableGhostModeOnStoryClose(_storiesSession);
+	AxState::disableGhostModeOnStoryClose(_storiesSession);
 	_message = nullptr;
 	_sharedMedia = nullptr;
 	_sharedMediaData = std::nullopt;

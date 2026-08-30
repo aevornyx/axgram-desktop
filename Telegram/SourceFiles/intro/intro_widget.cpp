@@ -172,7 +172,7 @@ Widget::Widget(
 		}, lifetime());
 	}
 
-	_footer->setText(QString("AyuGram Desktop v%1").arg(currentVersionText()));
+	_footer->setText(QString("AxGram Desktop v%1").arg(currentVersionText()));
 }
 
 rpl::producer<> Widget::showSettingsRequested() const {

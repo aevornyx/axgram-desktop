@@ -53,8 +53,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <tgcalls/VideoCaptureInterface.h>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 #include "boxes/abstract_box.h"
 
 
@@ -3054,11 +3054,11 @@ void VoiceRecordBar::stopRecording(StopType type, bool ttlBeforeHide) {
 					close();
 				});
 
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = AxSettings::getInstance();
 			if (settings.voiceConfirmation()) {
 				_show->showBox(Ui::MakeConfirmBox(
 					{
-						.text = tr::ayu_ConfirmationVoice(),
+						.text = tr::ax_ConfirmationVoice(),
 						.confirmed = std::move(sendVoiceCallback),
 						.confirmText = tr::lng_send_button()
 					}));
@@ -3133,7 +3133,7 @@ void VoiceRecordBar::requestToSendWithOptions(Api::SendOptions options) {
 			_listen->applyTrimBeforeSend();
 		}
 
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = AxSettings::getInstance();
 		auto sendVoiceCallback = crl::guard(
 			this,
 			[=, this](Fn<void()> &&close)
@@ -3151,7 +3151,7 @@ void VoiceRecordBar::requestToSendWithOptions(Api::SendOptions options) {
 		if (settings.voiceConfirmation()) {
 			_show->showBox(Ui::MakeConfirmBox(
 				{
-					.text = tr::ayu_ConfirmationVoice(),
+					.text = tr::ax_ConfirmationVoice(),
 					.confirmed = std::move(sendVoiceCallback),
 					.confirmText = tr::lng_send_button()
 				}));

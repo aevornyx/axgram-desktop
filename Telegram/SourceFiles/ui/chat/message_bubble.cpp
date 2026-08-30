@@ -12,8 +12,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/chat_style.h"
 #include "styles/style_chat.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 
 
 namespace Ui {
@@ -46,7 +46,7 @@ void PaintBubbleGeneric(
 		return;
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 	if (settings.removeMessageTail()) {
 		if (bottomWithTailLeft == Corner::Tail) {
 			bottomWithTailLeft = Corner::Large;

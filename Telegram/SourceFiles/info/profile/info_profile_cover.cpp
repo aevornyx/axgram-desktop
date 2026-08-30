@@ -21,10 +21,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_info.h"
 #include "styles/style_dialogs.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/ui/components/saved_music.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/ui/components/saved_music.h"
+#include "ax/utils/telegram_helpers.h"
 #include "ui/toast/toast.h"
 #include "ui/wrap/slide_wrap.h"
 

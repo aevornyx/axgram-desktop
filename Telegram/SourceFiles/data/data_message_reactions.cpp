@@ -42,9 +42,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/random.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/utils/telegram_helpers.h"
 
 
 namespace Data {
@@ -1521,7 +1521,7 @@ void Reactions::send(not_null<HistoryItem*> item, bool addToRecent) {
 		_sentRequests.remove(id);
 		_owner->session().api().applyUpdates(result);
 
-		const auto &ghost = AyuSettings::ghost(&_owner->session());
+		const auto &ghost = AxSettings::ghost(&_owner->session());
 		if (!ghost.sendReadMessages() && ghost.markReadAfterAction() && item) {
 			readHistory(item);
 		}

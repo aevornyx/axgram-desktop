@@ -21,11 +21,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "ui/vertical_list.h"
 
-// AyuGram includes
+// AxGram includes
 #include "lang_auto.h"
-#include "ayu/ayu_settings.h"
-#include "ayu/ui/components/saved_music.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "ax/ax_settings.h"
+#include "ax/ui/components/saved_music.h"
+#include "ax/utils/telegram_helpers.h"
 #include "data/data_document.h"
 #include "styles/style_menu_icons.h"
 #include "ui/widgets/popup_menu.h"
@@ -82,9 +82,9 @@ void SetupSavedMusic(
 			if (const auto document = item->media()
 					? item->media()->document()
 					: nullptr) {
-				auto musicButton = divider->entity()->add(object_ptr<Ui::SlideWrap<Profile::AyuMusicButton>>(
+				auto musicButton = divider->entity()->add(object_ptr<Ui::SlideWrap<Profile::AxMusicButton>>(
 					divider->entity(),
-					object_ptr<Profile::AyuMusicButton>(
+					object_ptr<Profile::AxMusicButton>(
 						divider->entity(),
 						DocumentMusicButtonData(document, item),
 						color,
@@ -102,7 +102,7 @@ void SetupSavedMusic(
 					return mouseButton == Qt::RightButton;
 				}) | rpl::on_next([=]
 										  {
-											  const auto &settings = AyuSettings::getInstance();
+											  const auto &settings = AxSettings::getInstance();
 
 											  const auto contextMenu = new Ui::PopupMenu(
 												  nullptr,
@@ -111,11 +111,11 @@ void SetupSavedMusic(
 
 											  contextMenu->addAction(
 												  settings.adaptiveCoverColor()
-													  ? tr::ayu_DisableColorfulCover(tr::now)
-													  : tr::ayu_EnableColorfulCover(tr::now),
+													  ? tr::ax_DisableColorfulCover(tr::now)
+													  : tr::ax_EnableColorfulCover(tr::now),
 												  [=]
 												  {
-													  AyuSettings::getInstance().setAdaptiveCoverColor(!AyuSettings::getInstance().adaptiveCoverColor());
+													  AxSettings::getInstance().setAdaptiveCoverColor(!AxSettings::getInstance().adaptiveCoverColor());
 
 													  const auto mediaRefreshed = item ? item->media() : nullptr;
 													  const auto documentRefreshed = mediaRefreshed

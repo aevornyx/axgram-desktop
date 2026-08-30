@@ -21,9 +21,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QMutex>
 #include <QtSvg/QSvgRenderer>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/ui/ayu_userpic.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/ui/ax_userpic.h"
 
 
 namespace Ui {
@@ -345,7 +345,7 @@ void EmptyUserpic::paintCircle(
 		int outerWidth,
 		int size) const {
 	paint(p, x, y, outerWidth, size, [&] {
-		AyuUserpic::PaintShape(p, x, y, size);
+		AxUserpic::PaintShape(p, x, y, size);
 	});
 }
 
@@ -357,8 +357,8 @@ void EmptyUserpic::paintRounded(
 		int size,
 		int radius) const {
 	paint(p, x, y, outerWidth, size, [&] {
-		if (AyuSettings::getInstance().singleCornerRadius()) {
-			AyuUserpic::PaintShape(p, x, y, size);
+		if (AxSettings::getInstance().singleCornerRadius()) {
+			AxUserpic::PaintShape(p, x, y, size);
 		} else {
 			p.drawRoundedRect(x, y, size, size, radius, radius);
 		}
@@ -372,7 +372,7 @@ void EmptyUserpic::paintSquare(
 		int outerWidth,
 		int size) const {
 	paint(p, x, y, outerWidth, size, [&] {
-		AyuUserpic::PaintShape(p, x, y, size);
+		AxUserpic::PaintShape(p, x, y, size);
 	});
 }
 
@@ -383,8 +383,8 @@ void EmptyUserpic::paintMonoforum(
 		int outerWidth,
 		int size) const {
 	paint(p, x, y, outerWidth, size, [&] {
-		if (AyuSettings::getInstance().singleCornerRadius()) {
-			AyuUserpic::PaintShape(p, x, y, size);
+		if (AxSettings::getInstance().singleCornerRadius()) {
+			AxUserpic::PaintShape(p, x, y, size);
 		} else {
 			PaintMonoforumShape(p, QRect(x, y, size, size));
 		}
@@ -419,7 +419,7 @@ void EmptyUserpic::PaintSavedMessages(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(std::move(bg));
 	p.setPen(Qt::NoPen);
-	AyuUserpic::PaintShape(p, x, y, size);
+	AxUserpic::PaintShape(p, x, y, size);
 
 	PaintSavedMessagesInner(p, x, y, size, fg);
 }
@@ -458,7 +458,7 @@ void EmptyUserpic::PaintRepliesMessages(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	AyuUserpic::PaintShape(p, x, y, size);
+	AxUserpic::PaintShape(p, x, y, size);
 
 	PaintRepliesMessagesInner(p, x, y, size, fg);
 }
@@ -497,7 +497,7 @@ void EmptyUserpic::PaintHiddenAuthor(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	AyuUserpic::PaintShape(p, x, y, size);
+	AxUserpic::PaintShape(p, x, y, size);
 
 	PaintHiddenAuthorInner(p, x, y, size, fg);
 }
@@ -536,7 +536,7 @@ void EmptyUserpic::PaintMyNotes(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	AyuUserpic::PaintShape(p, x, y, size);
+	AxUserpic::PaintShape(p, x, y, size);
 
 	PaintMyNotesInner(p, x, y, size, fg);
 }

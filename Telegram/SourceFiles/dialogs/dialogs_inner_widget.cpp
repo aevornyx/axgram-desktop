@@ -92,10 +92,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QApplication>
 #include <QtCore/QMimeData>
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
-#include "ayu/utils/telegram_helpers.h"
-#include "styles/style_ayu_icons.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
+#include "ax/utils/telegram_helpers.h"
+#include "styles/style_ax_icons.h"
 
 
 namespace Dialogs {
@@ -1173,7 +1173,7 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 			p.fillRect(0, 0, fullWidth, st::searchedBarHeight, st::searchedBarBg);
 			p.setFont(st::searchedBarFont);
 			p.setPen(st::searchedBarFg);
-			p.drawTextLeft(st::searchedBarPosition.x(), st::searchedBarPosition.y(), width(), tr::ayu_SearchByIDResults(tr::now));
+			p.drawTextLeft(st::searchedBarPosition.x(), st::searchedBarPosition.y(), width(), tr::ax_SearchByIDResults(tr::now));
 			p.translate(0, st::searchedBarHeight);
 
 			auto skip = idSearchOffset();
@@ -1638,12 +1638,12 @@ void InnerWidget::paintPeerSearchResult(
 			: context.selected
 			? &st::dialogsVerifiedIconOver
 			: &st::dialogsVerifiedIcon),
-		.exteraOfficial = &ThreeStateIcon(
-			st::dialogsExteraOfficialIcon,
+		.axOfficial = &ThreeStateIcon(
+			st::dialogsAxOfficialIcon,
 			context.active,
 			context.selected),
-		.exteraSupporter = &ThreeStateIcon(
-			st::dialogsExteraSupporterIcon,
+		.axSupporter = &ThreeStateIcon(
+			st::dialogsAxSupporterIcon,
 			context.active,
 			context.selected),
 		.premium = &ThreeStateIcon(
@@ -5475,7 +5475,7 @@ void InnerWidget::repaintDialogRowCornerStatus(not_null<History*> history) {
 		? st::dialogsOnlineBadgeSize
 		: st::dialogsCallBadgeSize;
 	const auto stroke = st::dialogsOnlineBadgeStroke;
-	const auto updateRect = AyuUserpic::OnlineBadgeRect(
+	const auto updateRect = AxUserpic::OnlineBadgeRect(
 		_st->photoSize,
 		size,
 		stroke

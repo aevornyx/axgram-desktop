@@ -48,9 +48,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/utils/telegram_helpers.h"
 
 #if __has_include(<gio/gio.hpp>)
 #include <gio/gio.hpp>
@@ -392,7 +392,7 @@ System::Timing System::countTiming(
 		delay = config.notifyDefaultDelay;
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 	if (settings.disableNotificationsDelay()) {
 		delay = minimalDelay;
 	}

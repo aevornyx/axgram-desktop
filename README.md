@@ -1,164 +1,74 @@
-# AyuGram
+# AxGram Desktop
 
-![AyuGram Logo](.github/AyuGram.png) ![AyuChan](.github/AyuChan.png)
+Неофициальный клиент Telegram для Windows: сохраняет удалённые и
+отредактированные сообщения, умеет режим призрака — и не обращается к чужим
+серверам.
 
-[ English  |   [Русский](README-RU.md) ]
+> **Изменённая версия.** AxGram Desktop — форк
+> [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop) (который сам является
+> форком Telegram Desktop). Изменения внесены aevornyx в июле–августе 2026 года;
+> перечень — в [NOTICE.md](NOTICE.md).
+>
+> AxGram не связан с Telegram FZ-LLC и не является официальным клиентом.
 
-## Features
+## Чем отличается от исходного форка
 
-- Full ghost mode (flexible)
-- Messages history
-- Anti-recall
-- Font customization
-- Streamer mode
-- Local Telegram Premium
-- Translator
-- Media preview & quick reaction on force click (macOS)
-- Enhanced appearance
+Собран на основе [AyuGram Desktop](https://github.com/AyuGram/AyuGramDesktop).
+Отличия — прежде всего в том, чего в нём **нет**.
 
-And many more. Check out our [Documentation](https://docs.ayugram.one/desktop/).
+**Не ходит на чужие серверы.** Исходный форк раз в час обращался к
+`update.ayugram.one` и подгружал переводы со своего CDN. И то, и другое
+отключено. Убран блок ссылок на каналы исходного проекта в настройках.
 
-<h3>
-  <details>
-    <summary>Preview</summary>
-    <table>
-      <tr>
-        <td><img src='.github/demos/demo1.png' width='268' alt='Preferences'></td>
-        <td><img src='.github/demos/demo2.png' width='268' alt='AyuGram Options'></td>
-        <td><img src='.github/demos/demo3.png' width='268' alt='Message Filters'></td>
-      </tr>
-      <tr>
-        <td><img src='.github/demos/demo4.png' width='268' alt='Appearance'></td>
-        <td><img src='.github/demos/demo5.png' width='268' alt='Chats'></td>
-      </tr>
-    </table>
-  </details>
-</h3>
+**Переименовано целиком** — не только название в заголовке окна: каталоги
+исходников, файлы, классы, пространства имён, ресурсы Windows, идентификатор
+приложения. Внутри не осталось следов исходного проекта, кроме путей к данным
+пользователя — их переименование стёрло бы настройки и сохранённую историю.
 
-## Downloads
+## Возможности
 
-### Windows
+- сохранение удалённых сообщений с пометкой и приглушением;
+- история правок сообщений;
+- режим призрака: не отмечать прочитанным, не показывать активность;
+- сохранение медиа из чатов с запретом пересылки;
+- фильтры сообщений по регулярным выражениям.
 
-#### Official
+## Сборка (Windows)
 
-You can download prebuilt Windows binary from [Releases tab](https://github.com/AyuGram/AyuGramDesktop/releases) or from
-the [Telegram channel](https://t.me/AyuGramReleases).
+Нужны Visual Studio 2022 с инструментами C++, CMake и подготовленные
+`Libraries` — как для обычного Telegram Desktop
+([инструкция](https://github.com/telegramdesktop/tdesktop/blob/dev/docs/building-win-x64.md)).
 
-#### Winget
+**Ключи Telegram API** получить на
+[core.telegram.org](https://core.telegram.org/api/obtaining_api_id) и передать
+при конфигурации — в репозитории они не хранятся.
 
-```bash
-winget install RadolynLabs.AyuGramDesktop
+Сборка запускается **только из PowerShell**, не из Git Bash: тот при вызове
+`.bat` отдаёт лишь баннер cmd.
+
+```powershell
+cmd /c '"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" && cd /d <путь-к-репозиторию> && cmake --build out --config Release --target Telegram --parallel 1 -- /m:1 /p:CL_MPCount=3'
 ```
 
-#### Scoop
+Перед сборкой закрыть запущенный клиент — компоновщик не перезапишет файл:
 
-```bash
-scoop bucket add extras
-scoop install ayugram
+```powershell
+Get-Process AxGram -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
 
-#### Self-built
+Результат — `out/Release/AxGram.exe`. Линковка долгая, несколько минут.
 
-Follow [official guide](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-win-x64.md) if you want to
-build by yourself.
+## Известные ограничения
 
-### macOS
+- Иконка окна на панели задач кэшируется Windows по `AppUserModelID` на время
+  работы приложения: выбранная в настройках иконка применяется к панели задач
+  только после перезапуска.
+- Иконка самого `.exe` и ярлыка вшита в бинарник и через настройки не меняется.
 
-#### Official
+## Лицензия
 
-You can download prebuilt macOS package from [Releases tab](https://github.com/AyuGram/AyuGramDesktop/releases).
+GNU General Public License v3.0 с особым исключением для линковки с OpenSSL —
+см. [LICENSE](LICENSE). Исключение унаследовано от Telegram Desktop и обязано
+оставаться в силе.
 
-#### Homebrew
-
-```bash
-brew install --cask ayugram
-```
-
-### Arch Linux
-
-#### From source (recommended)
-
-Install `ayugram-desktop` from [AUR](https://aur.archlinux.org/packages/ayugram-desktop).
-
-#### Prebuilt binaries
-
-Install `ayugram-desktop-bin` from [AUR](https://aur.archlinux.org/packages/ayugram-desktop-bin).
-
-Note: these binaries aren't officially maintained by us.
-
-### NixOS
-
-#### Flake (recommended)
-
-Install `ayugram-desktop` from [ndfined-crp/ayugram-desktop](https://github.com/ndfined-crp/ayugram-desktop)
-
-#### Nixpkgs
-
-Install `ayugram-desktop` from [nixpkgs](https://search.nixos.org/packages?channel=unstable&show=ayugram-desktop)
-
-### ALT Linux
-
-[Sisyphus](https://packages.altlinux.org/en/sisyphus/srpms/ayugram-desktop/)
-
-### Gentoo Linux
-
-See [this repository](https://codeberg.org/OverLessArtem/ayugram-ebuild-gentoo) for installation manual.
-
-### Void Linux
-See [this repository](https://codeberg.org/OverLessArtem/ayugram-template-void) for installation manual.
-
-### EPM
-
-`epm play ayugram`
-
-### Fedora
-
-From [RPM Fusion](https://admin.rpmfusion.org/pkgdb/package/free/ayugram-desktop/) repository.
-
-```bash
-dnf install ayugram-desktop
-```
-
-### Any other Linux distro
-
-Flatpak: https://github.com/0FL01/AyuGramDesktop-flatpak
-
-Or follow the [official guide](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-linux.md).
-
-### Remarks for Windows
-
-Make sure you have these components installed with VS Build Tools:
-
-- C++ MFC latest (x86 & x64)
-- C++ ATL latest (x86 & x64)
-- latest Windows 11 SDK
-
-## Donation
-
-Enjoy using **AyuGram**? Consider sending us a tip!
-
-[Here's available methods.](https://docs.ayugram.one/donate/)
-
-## Credits
-
-### Telegram clients
-
-- [Telegram Desktop](https://github.com/telegramdesktop/tdesktop)
-- [Kotatogram](https://github.com/kotatogram/kotatogram-desktop)
-- [64Gram](https://github.com/TDesktop-x64/tdesktop)
-- [Forkgram](https://github.com/forkgram/tdesktop)
-
-### Libraries used
-
-- [JSON for Modern C++](https://github.com/nlohmann/json)
-- [SQLite](https://github.com/sqlite/sqlite)
-- [sqlite_orm](https://github.com/fnc12/sqlite_orm)
-- [androidx sources](https://github.com/androidx/androidx)
-
-### Icons
-
-- [Solar Icon Set](https://www.figma.com/community/file/1166831539721848736)
-
-### Bots
-
-- [TelegramDB](https://t.me/tgdatabase) for username lookup by ID (until closing free inline mode at 2 April 2026)
+Список авторов и цепочка форков — в [NOTICE.md](NOTICE.md).

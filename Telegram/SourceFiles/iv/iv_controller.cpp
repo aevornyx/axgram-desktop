@@ -52,8 +52,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <ada.h>
 
-// AyuGram includes
-#include "ayu/features/streamer_mode/streamer_mode.h"
+// AxGram includes
+#include "ax/features/streamer_mode/streamer_mode.h"
 
 
 namespace Iv {
@@ -649,8 +649,8 @@ void Controller::createWebview(const Webview::StorageId &storageId) {
 
 	const auto window = _window.get();
 
-	if (AyuFeatures::StreamerMode::isEnabled()) {
-		AyuFeatures::StreamerMode::hideWidgetWindow(window);
+	if (AxFeatures::StreamerMode::isEnabled()) {
+		AxFeatures::StreamerMode::hideWidgetWindow(window);
 	}
 
 	_webview = std::make_unique<Webview::Window>(

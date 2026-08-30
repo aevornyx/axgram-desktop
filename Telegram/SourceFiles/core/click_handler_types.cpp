@@ -45,8 +45,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QDateTime>
 #include <QtCore/QLocale>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 
 namespace {
 
@@ -257,7 +257,7 @@ void HiddenUrlClickHandler::Open(QString url, QVariant context) {
 		const auto parsedUrl = url.startsWith(u"tonsite://"_q)
 			? QUrl(url)
 			: QUrl::fromUserInput(url);
-		if (!AyuSettings::getInstance().disableOpenLinkWarning() && UrlRequiresConfirmation(parsedUrl) && !base::IsCtrlPressed()) {
+		if (!AxSettings::getInstance().disableOpenLinkWarning() && UrlRequiresConfirmation(parsedUrl) && !base::IsCtrlPressed()) {
 			const auto my = context.value<ClickHandlerContext>();
 			if (!my.show) {
 				Core::App().hideMediaView();

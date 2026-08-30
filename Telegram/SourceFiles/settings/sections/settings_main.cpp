@@ -87,10 +87,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QWindow>
 
-// AyuGram includes
-#include "ayu/ui/settings/settings_main.h"
-#include "ayu/ui/utils/ayu_profile_values.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ui/settings/settings_main.h"
+#include "ax/ui/utils/ax_profile_values.h"
+#include "ax/utils/telegram_helpers.h"
 
 
 namespace Settings {
@@ -125,7 +125,7 @@ private:
 	const not_null<UserData*> _user;
 	Info::Profile::EmojiStatusPanel _emojiStatusPanel;
 	Info::Profile::Badge _badge;
-	Info::Profile::Badge _exteraBadge;
+	Info::Profile::Badge _axBadge;
 
 	object_ptr<Ui::UserpicButton> _userpic;
 	object_ptr<Ui::FlatLabel> _name = { nullptr };
@@ -159,18 +159,18 @@ Cover::Cover(
 	},
 	0, // customStatusLoopsLimit
 	Info::Profile::BadgeType::Premium)
-, _exteraBadge(
+, _axBadge(
 	this,
 	st::infoPeerBadge,
 	&user->session(),
-	ExteraBadgeTypeFromPeer(user),
+	AxBadgeTypeFromPeer(user),
 	&_emojiStatusPanel,
 	[=] {
 		return controller->isGifPausedAtLeastFor(
 			Window::GifPauseReason::Layer);
 	},
 	0, // customStatusLoopsLimit
-	Info::Profile::BadgeType::Extera | Info::Profile::BadgeType::ExteraSupporter | Info::Profile::BadgeType::ExteraCustom)
+	Info::Profile::BadgeType::Ax | Info::Profile::BadgeType::AxSupporter | Info::Profile::BadgeType::AxCustom)
 , _userpic(
 	this,
 	controller,
@@ -187,7 +187,7 @@ Cover::Cover(
 	_name->setContextCopyText(tr::lng_profile_copy_fullname(tr::now));
 
 	_id->setSelectable(true);
-	_id->setContextCopyText(tr::ayu_ContextCopyID(tr::now));
+	_id->setContextCopyText(tr::ax_ContextCopyID(tr::now));
 	const auto hook = [=](Ui::FlatLabel::ContextMenuRequest request) {
 		if (request.selection.empty()) {
 			const auto callback = [=] {
@@ -195,7 +195,7 @@ Cover::Cover(
 				TextUtilities::SetClipboardText({ id });
 			};
 			request.menu->addAction(
-				tr::ayu_ContextCopyID(tr::now),
+				tr::ax_ContextCopyID(tr::now),
 				callback,
 				&st::menuIconCopy);
 		} else {
@@ -231,14 +231,14 @@ Cover::Cover(
 			_badge.sizeTag());
 	});
 	const auto isCustomBadge = isCustomBadgePeer(getBareID(_user));
-	const auto isExtera = isExteraPeer(getBareID(_user));
+	const auto isAx = isAxPeer(getBareID(_user));
 	const auto isSupporter = isSupporterPeer(getBareID(_user));
-	if (isExtera || isSupporter || isCustomBadge) {
-		_exteraBadge.setPremiumClickCallback(badgeClickHandler(_user));
+	if (isAx || isSupporter || isCustomBadge) {
+		_axBadge.setPremiumClickCallback(badgeClickHandler(_user));
 	}
 	rpl::merge(
 		_badge.updated(),
-		_exteraBadge.updated()
+		_axBadge.updated()
 	) | rpl::on_next([=] {
 		refreshNameGeometry(width());
 	}, _name->lifetime());
@@ -326,7 +326,7 @@ void Cover::refreshNameGeometry(int newWidth) {
 	if (const auto width = _badge.widget() ? _badge.widget()->width() : 0) {
 		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
 	}
-	if (const auto width = _exteraBadge.widget() ? _exteraBadge.widget()->width() : 0) {
+	if (const auto width = _axBadge.widget() ? _axBadge.widget()->width() : 0) {
 		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
 	}
 	_name->resizeToNaturalWidth(nameWidth);
@@ -335,11 +335,11 @@ void Cover::refreshNameGeometry(int newWidth) {
 	const auto badgeTop = nameTop;
 	const auto badgeBottom = nameTop + _name->height();
 	_badge.move(badgeLeft, badgeTop, badgeBottom);
-	const auto exteraBadgeLeft = badgeLeft
+	const auto axBadgeLeft = badgeLeft
 		+ (_badge.widget()
 			   ? (_badge.widget()->width() + st::infoVerifiedCheckPosition.x())
 			   : 0);
-	_exteraBadge.move(exteraBadgeLeft, badgeTop, badgeBottom);
+	_axBadge.move(axBadgeLeft, badgeTop, badgeBottom);
 }
 
 void Cover::updateIdText() {
@@ -382,10 +382,10 @@ void BuildSectionButtons(SectionBuilder &builder) {
 	const auto showOther = builder.showOther();
 
 	builder.addSectionButton({
-		.title = tr::ayu_AyuPreferences(),
-		.targetSection = AyuMain::Id(),
+		.title = tr::ax_AxPreferences(),
+		.targetSection = AxMain::Id(),
 		.icon = { &st::menuIconPremium },
-		.keywords = { u"ayu"_q },
+		.keywords = { u"ax"_q },
 	});
 	builder.addSkip();
 	builder.addDivider();

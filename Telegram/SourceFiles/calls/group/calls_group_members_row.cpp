@@ -20,8 +20,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "webrtc/webrtc_video_track.h"
 #include "styles/style_calls.h"
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
 
 
 namespace Calls::Group {
@@ -411,7 +411,7 @@ void MembersRow::paintBlobs(
 			st::groupCallMemberInactiveStatus,
 			st::groupCallMemberActiveStatus,
 			_speakingAnimation.value(_speaking ? 1. : 0.));
-	if (AyuUserpic::IsCircle()) {
+	if (AxUserpic::IsCircle()) {
 		_blobsAnimation->blobs.paint(p, brush);
 	} else {
 		const auto level = _blobsAnimation->blobs.currentLevel();
@@ -420,7 +420,7 @@ void MembersRow::paintBlobs(
 			const auto scale = blob.minScale + (1. - blob.minScale) * level;
 			const auto radius = blob.maxRadius;
 			const auto rectSize = 2. * radius;
-			const auto cornerRadius = AyuUserpic::ComputeRadiusF(rectSize);
+			const auto cornerRadius = AxUserpic::ComputeRadiusF(rectSize);
 			p.save();
 			p.scale(scale, scale);
 			p.setOpacity(p.opacity() * blob.alpha);

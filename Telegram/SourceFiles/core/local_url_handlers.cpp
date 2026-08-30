@@ -75,8 +75,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtGui/QGuiApplication>
 
-// AyuGram includes
-#include "ayu/ayu_url_handlers.h"
+// AxGram includes
+#include "ax/ax_url_handlers.h"
 
 
 namespace Core {
@@ -1758,27 +1758,23 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 		},
 		{
 			u"^user\\?(.+)(#|$)"_q,
-			AyuUrlHandlers::ResolveUser
+			AxUrlHandlers::ResolveUser
 		},
 		{
 			u"^chat\\?(.+)(#|$)"_q,
-			AyuUrlHandlers::ResolveChat
+			AxUrlHandlers::ResolveChat
 		},
 		{
-			u"^ayusettings/?\\?(.+)(#|$)"_q,
-			AyuUrlHandlers::HandleAyuSettings
+			u"^axsettings/?\\?(.+)(#|$)"_q,
+			AxUrlHandlers::HandleAxSettings
 		},
 		{
-			u"^ayusettings/?$"_q,
-			AyuUrlHandlers::HandleAyuSettings
+			u"^axsettings/?$"_q,
+			AxUrlHandlers::HandleAxSettings
 		},
 		{
-			u"^ayu(/?.+)?(#|$)"_q,
-			AyuUrlHandlers::HandleAyu
-		},
-		{
-			u"^(support)|(donate)$"_q,
-			AyuUrlHandlers::HandleSupport
+			u"^ax(/?.+)?(#|$)"_q,
+			AxUrlHandlers::HandleAx
 		},
 		{
 			u"^([^\\?]+)(\\?|#|$)"_q,
@@ -1984,9 +1980,9 @@ QString TryConvertUrlToLocal(QString url) {
 				added = u"&post="_q + postMatch->captured(1);
 			}
 			return base + added + (params.isEmpty() ? QString() : '&' + params);
-		} else if (const auto ayuSettingsMatch = regex_match(
-			u"^(?:ayuSettings|exteraSettings)/?\\?(.+)$"_q, query, matchOptions)) {
-			return u"tg://ayusettings?"_q + ayuSettingsMatch->captured(1);
+		} else if (const auto axSettingsMatch = regex_match(
+			u"^(?:axSettings|exteraSettings)/?\\?(.+)$"_q, query, matchOptions)) {
+			return u"tg://axsettings?"_q + axSettingsMatch->captured(1);
 		} else if (const auto usernameMatch = regex_match(u"^"
 			"([a-zA-Z0-9\\.\\_]+)"
 			"("

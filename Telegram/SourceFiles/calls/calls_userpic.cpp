@@ -20,8 +20,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h" // requestFullPeer.
 #include "styles/style_calls.h"
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
 #include "ui/image/image_prepare.h"
 
 
@@ -105,7 +105,7 @@ void Userpic::paint() {
 		pen.setWidth(_muteStroke);
 		p.setPen(pen);
 		p.setBrush(st::callHangupBg);
-		const auto pos = AyuUserpic::OnlineBadgePosition(
+		const auto pos = AxUserpic::OnlineBadgePosition(
 			size(),
 			_muteSize);
 		const auto rect = QRect(
@@ -113,7 +113,7 @@ void Userpic::paint() {
 			int(std::round(pos.y())),
 			_muteSize,
 			_muteSize);
-		AyuUserpic::PaintShape(p, QRectF(rect));
+		AxUserpic::PaintShape(p, QRectF(rect));
 		st::callMutedPeerIcon.paintInCenter(p, rect);
 	}
 }
@@ -201,7 +201,7 @@ void Userpic::createCache(Image *image) {
 			}).toImage();
 		result = Images::Round(
 			std::move(result),
-			ImageRoundRadius::AyuUserpic);
+			ImageRoundRadius::AxUserpic);
 		_userPhoto = Images::PixmapFast(std::move(result));
 		_userPhoto.setDevicePixelRatio(style::DevicePixelRatio());
 	} else {

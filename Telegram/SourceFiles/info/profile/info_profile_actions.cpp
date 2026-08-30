@@ -107,11 +107,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
 
-// AyuGram includes
-#include "ayu/ui/utils/ayu_profile_values.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ui/utils/ax_profile_values.h"
+#include "ax/utils/telegram_helpers.h"
 #include "base/event_filter.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_ax_styles.h"
 #include "ui/widgets/tooltip.h"
 #include "ui/text/text_entity.h"
 
@@ -1821,7 +1821,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			auto idInfo = addInfoOneLine(
 				rpl::single(idLabel),
 				std::move(idDrawableText),
-				tr::ayu_ContextCopyID(tr::now)
+				tr::ax_ContextCopyID(tr::now)
 			);
 
 			idInfo.text->setClickHandlerFilter([=](auto &&...)
@@ -1829,7 +1829,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				const auto idText = IDString(user);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
-					controller->showToast(tr::ayu_IDCopiedToast(tr::now));
+					controller->showToast(tr::ax_IDCopiedToast(tr::now));
 				}
 				return false;
 			});
@@ -1955,7 +1955,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			auto idInfo = addInfoOneLine(
 				idLabel,
 				std::move(idDrawableText),
-				tr::ayu_ContextCopyID(tr::now)
+				tr::ax_ContextCopyID(tr::now)
 			);
 
 			idInfo.text->setClickHandlerFilter([=, peer = _peer](auto &&...)
@@ -1963,7 +1963,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				const auto idText = IDString(peer);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
-					controller->showToast(tr::ayu_IDCopiedToast(tr::now));
+					controller->showToast(tr::ax_IDCopiedToast(tr::now));
 				}
 				return false;
 			});
@@ -1980,7 +1980,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			auto idInfo = addInfoOneLine(
 				rpl::single(QString("ID")),
 				std::move(idDrawableText),
-				tr::ayu_ContextCopyID(tr::now)
+				tr::ax_ContextCopyID(tr::now)
 			);
 
 			idInfo.text->setClickHandlerFilter([=, peer = _peer](auto &&...)
@@ -1988,7 +1988,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				const auto idText = IDString(peer->forumTopicFor(topicRootId)->topicRootId());
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
-					controller->showToast(tr::ayu_IDCopiedToast(tr::now));
+					controller->showToast(tr::ax_IDCopiedToast(tr::now));
 				}
 				return false;
 			});

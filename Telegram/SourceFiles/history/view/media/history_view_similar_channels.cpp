@@ -35,7 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_polls.h"
 
-// AyuGram includes
+// AxGram includes
 #include "ui/chat/chat_style_radius.h"
 
 

@@ -1,0 +1,82 @@
+/*
+ * This is the source code of AxGram for Desktop.
+ *
+ * We do not and cannot prevent the use of our code,
+ * but be respectful and credit the original author.
+ *
+ * Copyright @Radolyn, 2025
+ */
+
+using "ui/colors.palette";
+using "ui/chat/chat.style";
+using "ui/widgets/widgets.style";
+using "dialogs/dialogs.style";
+
+axGhostIcon: icon {{ "ax/ghost", menuIconColor }};
+axGhostModeGlobalIcon: icon {{ "ax/ghost_mode_global", historyPeerUserpicFg }};
+axEditsHistoryIcon: icon {{ "ax/edits_history", menuIconColor }};
+axLReadMenuIcon: icon {{ "ax/lread", menuIconColor }};
+axSReadMenuIcon: icon {{ "ax/sread", menuIconColor }};
+axStreamerModeMenuIcon: icon {{ "ax/streamer", menuIconColor }};
+axToBeginningMenuIcon: icon {{ "ax/to_beginning", menuIconColor }};
+axRepeatMenuIcon: icon {{ "ax/repeat", menuIconColor }};
+axContactsMutualIcon: icon {{ "ax/contacts_mutual", contactsStatusFg }};
+axContactsMutualIconOver: icon {{ "ax/contacts_mutual", contactsStatusFgOver }};
+
+messageFieldAttachIcon: icon {{ "ax/message_field/attach", menuIconColor }};
+messageFieldCommandsIcon: icon {{ "ax/message_field/commands", menuIconColor }};
+messageFieldEmojiIcon: icon {{ "ax/message_field/emoji", menuIconColor }};
+messageFieldVoiceIcon: icon {{ "ax/message_field/voice", menuIconColor }};
+messageFieldTTLIcon: icon {{ "ax/message_field/ttl", menuIconColor }};
+messageFieldCocoonAiIcon: icon{
+	{ size(24px, 24px), transparent },
+	{ "chat/ai_letters-20x20", menuIconColor, point(2px, 2px) },
+	{ "chat/ai_star1-20x20", menuIconColor, point(2px, 2px) },
+	{ "chat/ai_star2-20x20", menuIconColor, point(2px, 2px) },
+};
+
+inChannelBadgeIcon: icon {{ "ax/channel", msgInDateFg }};
+inChannelBadgeSelectedIcon: icon {{ "ax/channel", msgInDateFgSelected }};
+outChannelBadgeIcon: icon {{ "ax/channel", msgOutDateFg }};
+outChannelBadgeSelectedIcon: icon {{ "ax/channel", msgOutDateFgSelected }};
+
+infoAxOfficialBadge: icon {{ "ax/ax_official", profileVerifiedCheckBg }};
+infoAxSupporterBadge: icon {{ "ax/ax_badge", profileVerifiedCheckBg }};
+
+winEnterWithGuestIcon: icon {{ "ax/ghost_tray", windowFg }};
+
+editedIcon: IconEmoji{
+    icon: icon{{ "ax/edited", windowFg }};
+    padding: margins(0px, 0px, 0px, 0px);
+    useIconColor: false;
+}
+
+deletedIcon: IconEmoji{
+    icon: icon{{ "ax/trash_bin", windowFg }};
+    padding: margins(0px, 0px, 0px, 0px);
+    useIconColor: false;
+}
+
+burntIcon: IconEmoji{
+    icon: icon{{ "ax/burnt", windowFg }};
+    padding: margins(0px, 0px, 0px, 0px);
+    useIconColor: false;
+}
+
+dialogsAxOfficialIcon: ThreeStateIcon {
+	icon: icon {{ "ax/dialogs_ax_official", dialogsVerifiedIconBg }};
+	over: icon {{ "ax/dialogs_ax_official", dialogsVerifiedIconBgOver }};
+	active: icon {{ "ax/dialogs_ax_official", dialogsVerifiedIconBgActive }};
+}
+dialogsAxSupporterIcon: ThreeStateIcon {
+	icon: icon {{ "ax/dialogs_ax_supporter", dialogsVerifiedIconBg }};
+	over: icon {{ "ax/dialogs_ax_supporter", dialogsVerifiedIconBgOver }};
+	active: icon {{ "ax/dialogs_ax_supporter", dialogsVerifiedIconBgActive }};
+}
+
+axHistoryFileInPlugin: icon {{ "ax/history_file_plugin", historyFileInIconFg }};
+axHistoryFileInPluginSelected: icon {{ "ax/history_file_plugin", historyFileInIconFgSelected }};
+axHistoryFileOutPlugin: icon {{ "ax/history_file_plugin", historyFileOutIconFg }};
+axHistoryFileOutPluginSelected: icon {{ "ax/history_file_plugin", historyFileOutIconFgSelected }};
+
+menuIconClearAttention: icon {{ "menu/clear", menuIconAttentionColor }};

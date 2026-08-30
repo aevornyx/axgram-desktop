@@ -47,8 +47,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtWidgets/QApplication>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 #include "ui/boxes/confirm_box.h"
 #include "boxes/abstract_box.h"
 
@@ -546,10 +546,10 @@ void GifsListWidget::selectInlineResult(
 					});
 				});
 
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = AxSettings::getInstance();
 			if (settings.gifConfirmation()) {
 				_show->showBox(Ui::MakeConfirmBox({
-					.text = tr::ayu_ConfirmationGIF(),
+					.text = tr::ax_ConfirmationGIF(),
 					.confirmed = sendGIFCallback,
 					.confirmText = tr::lng_send_button()
 				}));

@@ -70,9 +70,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtCore/QBuffer>
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
+#include "ax/utils/telegram_helpers.h"
 #include "styles/style_info.h"
 
 
@@ -111,11 +111,11 @@ private:
 	rpl::variable<QString> _text;
 	rpl::event_stream<int> _unreadWidth;
 	rpl::event_stream<int> _premiumWidth;
-	rpl::event_stream<int> _exteraWidth;
+	rpl::event_stream<int> _axWidth;
 
 	QPointer<Ui::RpWidget> _unread;
 	Info::Profile::Badge _badge;
-	Info::Profile::Badge _exteraBadge;
+	Info::Profile::Badge _axBadge;
 
 };
 
@@ -137,15 +137,15 @@ ComposedBadge::ComposedBadge(
 		animationPaused,
 		kPlayStatusLimit,
 		Info::Profile::BadgeType::Premium)
-, _exteraBadge(
+, _axBadge(
 		this,
 		st::infoPeerBadge,
 		session,
-		ExteraBadgeTypeFromPeer(session->user()),
+		AxBadgeTypeFromPeer(session->user()),
 		nullptr,
 		std::move(animationPaused),
 		0,
-		Info::Profile::BadgeType::Extera | Info::Profile::BadgeType::ExteraSupporter | Info::Profile::BadgeType::ExteraCustom) {
+		Info::Profile::BadgeType::Ax | Info::Profile::BadgeType::AxSupporter | Info::Profile::BadgeType::AxCustom) {
 	if (hasUnread) {
 		_unread = Badge::CreateUnread(this, rpl::single(
 			rpl::empty
@@ -176,13 +176,13 @@ ComposedBadge::ComposedBadge(
 		}
 	}, lifetime());
 
-	_exteraBadge.updated(
+	_axBadge.updated(
 	) | rpl::on_next([=] {
-		if (const auto widget = _exteraBadge.widget()) {
+		if (const auto widget = _axBadge.widget()) {
 			widget->widthValue(
-			) | rpl::start_to_stream(_exteraWidth, widget->lifetime());
+			) | rpl::start_to_stream(_axWidth, widget->lifetime());
 		} else {
-			_exteraWidth.fire(0);
+			_axWidth.fire(0);
 		}
 	}, lifetime());
 
@@ -194,15 +194,15 @@ ComposedBadge::ComposedBadge(
 		_premiumWidth.events_starting_with(_badge.widget()
 			? _badge.widget()->width()
 			: 0),
-		_exteraWidth.events_starting_with(_exteraBadge.widget()
-			? _exteraBadge.widget()->width()
+		_axWidth.events_starting_with(_axBadge.widget()
+			? _axBadge.widget()->width()
 			: 0),
 		std::move(textWidth),
 		button->sizeValue()
 	) | rpl::on_next([=](
 			int unreadWidth,
 			int premiumWidth,
-			int exteraWidth,
+			int axWidth,
 			int textWidth,
 			const QSize &buttonSize) {
 		const auto &st = button->st();
@@ -210,13 +210,13 @@ ComposedBadge::ComposedBadge(
 		const auto textRightPosition = st.padding.left()
 			+ textWidth
 			+ skip;
-		const auto exteraGap = exteraWidth
+		const auto axGap = axWidth
 			? st::infoVerifiedCheckPosition.x()
 			: 0;
 		const auto minWidth = unreadWidth
 			+ premiumWidth
-			+ exteraGap
-			+ exteraWidth
+			+ axGap
+			+ axWidth
 			+ skip;
 		const auto maxTextWidth = buttonSize.width()
 			- minWidth
@@ -232,7 +232,7 @@ ComposedBadge::ComposedBadge(
 			0,
 			st.padding.top(),
 			buttonSize.height() - st.padding.top());
-		_exteraBadge.move(
+		_axBadge.move(
 			premiumWidth,
 			st.padding.top(),
 			buttonSize.height() - st.padding.top());
@@ -844,7 +844,7 @@ void SetupAccountsWrap(
 			pen.setWidthF(line);
 			p.setPen(pen);
 			p.setBrush(Qt::NoBrush);
-			AyuUserpic::PaintShape(p, rect);
+			AxUserpic::PaintShape(p, rect);
 		}
 	}, state->userpic.lifetime());
 

@@ -27,8 +27,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "styles/style_widgets.h"
 
-// AyuGram includes
-#include "ayu/features/forward/ayu_forward.h"
+// AxGram includes
+#include "ax/features/forward/ax_forward.h"
 
 
 namespace {
@@ -220,7 +220,7 @@ bool CanSendAnyOf(
 		not_null<const PeerData*> peer,
 		ChatRestrictions rights,
 		bool forbidInForums) {
-	if (AyuForward::isForwarding(peer->id)) {
+	if (AxForward::isForwarding(peer->id)) {
 		return false;
 	}
 	if (peer->session().frozen()
@@ -289,9 +289,9 @@ bool CanSendAnyOf(
 SendError RestrictionError(
 		not_null<PeerData*> peer,
 		ChatRestriction restriction) {
-	if (AyuForward::isForwarding(peer->id)) {
+	if (AxForward::isForwarding(peer->id)) {
 		return SendError({
-			.text = AyuForward::stateName(peer->id).first + "\n" + AyuForward::stateName(peer->id).second,
+			.text = AxForward::stateName(peer->id).first + "\n" + AxForward::stateName(peer->id).second,
 		});
 	}
 	using Flag = ChatRestriction;

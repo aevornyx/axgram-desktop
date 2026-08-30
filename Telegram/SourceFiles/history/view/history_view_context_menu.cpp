@@ -110,10 +110,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/features/forward/ayu_forward.h"
-#include "ayu/ui/context_menu/context_menu.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/features/forward/ax_forward.h"
+#include "ax/ui/context_menu/context_menu.h"
 
 
 namespace HistoryView {
@@ -1067,11 +1067,11 @@ void AddMessageActions(
 		not_null<ListWidget*> list) {
 	if (request.item) {
 		const auto context = request.view ? request.view->context() : Context::History;
-		AyuUi::AddHistoryAction(menu, request.item);
-		AyuUi::AddHideMessageAction(menu, request.item);
-		AyuUi::AddUserMessagesAction(menu, request.item);
-		AyuUi::AddRepeatMessageAction(menu, request.item, context);
-		AyuUi::AddMessageDetailsAction(menu, request.item);
+		AxUi::AddHistoryAction(menu, request.item);
+		AxUi::AddHideMessageAction(menu, request.item);
+		AxUi::AddUserMessagesAction(menu, request.item);
+		AxUi::AddRepeatMessageAction(menu, request.item, context);
+		AxUi::AddMessageDetailsAction(menu, request.item);
 	}
 
 	AddPostLinkAction(menu, request);
@@ -1084,8 +1084,8 @@ void AddMessageActions(
 	AddRescheduleAction(menu, request, list);
 
 	if (request.item) {
-		AyuUi::AddReadUntilAction(menu, request.item);
-		AyuUi::AddBurnAction(menu, request.item);
+		AxUi::AddReadUntilAction(menu, request.item);
+		AxUi::AddBurnAction(menu, request.item);
 	}
 }
 
@@ -2014,8 +2014,8 @@ void AddWhoReactedAction(
 		not_null<QWidget*> context,
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller) {
-	const auto &settings = AyuSettings::getInstance();
-	if (!AyuUi::needToShowItem(settings.showViewsPanelInContextMenu())) {
+	const auto &settings = AxSettings::getInstance();
+	if (!AxUi::needToShowItem(settings.showViewsPanelInContextMenu())) {
 		return;
 	}
 
@@ -2457,7 +2457,7 @@ void AddSelectRestrictionAction(
 		not_null<HistoryItem*> item,
 		bool addIcon) {
 	const auto peer = item->history()->peer;
-	if ((!peer->isAyuNoForwards() && !AyuForward::isAyuForwardNeeded(item))
+	if ((!peer->isAxNoForwards() && !AxForward::isAxForwardNeeded(item))
 		|| item->isSponsored()) {
 		return;
 	}
@@ -2472,7 +2472,7 @@ void AddSelectRestrictionAction(
 		((addIcon && !user)
 			? st::historySponsoredAboutMenuLabelPosition
 			: st::historyHasCustomEmojiPosition),
-		tr::ayu_UnforwardableContextMenuText(
+		tr::ax_UnforwardableContextMenuText(
 			tr::now,
 			tr::rich),
 		(addIcon && !user) ? &st::menuIconCopyright : nullptr);
@@ -2499,7 +2499,7 @@ TextWithEntities TransribedText(not_null<HistoryItem*> item) {
 }
 
 bool ItemHasTtl(HistoryItem *item) {
-	return false; // AyuGram: allow downloading files with ttl
+	return false; // AxGram: allow downloading files with ttl
 }
 
 } // namespace HistoryView

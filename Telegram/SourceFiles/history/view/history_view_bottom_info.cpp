@@ -36,12 +36,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_credits.h"
 #include "styles/style_dialogs.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/features/message_shot/message_shot.h"
-#include "ayu/utils/telegram_helpers.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/features/message_shot/message_shot.h"
+#include "ax/utils/telegram_helpers.h"
 #include "core/ui_integration.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_ax_icons.h"
 
 
 namespace HistoryView {
@@ -165,7 +165,7 @@ TextState BottomInfo::textState(
 	}
 	const auto textWidth = _authorEditedDate.maxWidth();
 	auto withTicksWidth = textWidth;
-	if (!AyuFeatures::MessageShot::isTakingShot() && (_data.flags & (Data::Flag::OutLayout | Data::Flag::Sending))) {
+	if (!AxFeatures::MessageShot::isTakingShot() && (_data.flags & (Data::Flag::OutLayout | Data::Flag::Sending))) {
 		withTicksWidth += st::historySendStateSpace;
 	}
 	if (!_views.isEmpty()) {
@@ -268,7 +268,7 @@ void BottomInfo::paint(
 
 	auto right = position.x() + width();
 	const auto firstLineBottom = position.y() + st::msgDateFont->height;
-	if (!AyuFeatures::MessageShot::isTakingShot() && (_data.flags & Data::Flag::OutLayout)) {
+	if (!AxFeatures::MessageShot::isTakingShot() && (_data.flags & Data::Flag::OutLayout)) {
 		const auto &icon = (_data.flags & Data::Flag::Sending)
 			? (inverted
 				? st->historySendingInvertedIcon()
@@ -337,7 +337,7 @@ void BottomInfo::paint(
 			firstLineBottom + st::historyViewsTop,
 			outerWidth);
 	}
-	if (!AyuFeatures::MessageShot::isTakingShot() && (_data.flags & Data::Flag::Sending)
+	if (!AxFeatures::MessageShot::isTakingShot() && (_data.flags & Data::Flag::Sending)
 		&& !(_data.flags & Data::Flag::OutLayout)) {
 		right -= st::historySendStateSpace;
 		const auto &icon = inverted
@@ -454,10 +454,10 @@ void BottomInfo::layout() {
 }
 
 void BottomInfo::layoutDateText() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 
 	if (!settings.replaceBottomInfoWithIcons()) {
-		const auto deleted = (_data.flags & Data::Flag::AyuDeleted)
+		const auto deleted = (_data.flags & Data::Flag::AxDeleted)
 			? (settings.deletedMark() + ' ')
 			: QString();
 		const auto edited = (_data.flags & Data::Flag::Edited)
@@ -509,7 +509,7 @@ void BottomInfo::layoutDateText() {
 				.textColor = false,
 			})).append("  ");
 		}
-		if (_data.flags & Data::Flag::AyuBurnt) {
+		if (_data.flags & Data::Flag::AxBurnt) {
 			marked.append(Ui::Text::IconEmoji(&st::burntIcon));
 			marked.append(' ');
 		}
@@ -521,16 +521,16 @@ void BottomInfo::layoutDateText() {
 			helper.context());
 	} else {
 		TextWithEntities burnt;
-		if (_data.flags & Data::Flag::AyuBurnt) {
+		if (_data.flags & Data::Flag::AxBurnt) {
 			burnt = Ui::Text::IconEmoji(&st::burntIcon);
-			if (!(_data.flags & Data::Flag::AyuDeleted)
+			if (!(_data.flags & Data::Flag::AxDeleted)
 				&& !(_data.flags & Data::Flag::Edited)) {
 				burnt.append(' ');
 			}
 		}
 
 		TextWithEntities deleted;
-		if (_data.flags & Data::Flag::AyuDeleted) {
+		if (_data.flags & Data::Flag::AxDeleted) {
 			deleted = Ui::Text::IconEmoji(&st::deletedIcon);
 			if (!(_data.flags & Data::Flag::Edited)) {
 				deleted.append(' ');
@@ -649,7 +649,7 @@ QSize BottomInfo::countOptimalSize() {
 		return { st::historyShortcutStateSpace, st::msgDateFont->height };
 	}
 	auto width = 0;
-	if (!AyuFeatures::MessageShot::isTakingShot() && (_data.flags & (Data::Flag::OutLayout | Data::Flag::Sending))) {
+	if (!AxFeatures::MessageShot::isTakingShot() && (_data.flags & (Data::Flag::OutLayout | Data::Flag::Sending))) {
 		width += st::historySendStateSpace;
 	}
 	width += _authorEditedDate.maxWidth();
@@ -786,10 +786,10 @@ BottomInfo::Data BottomInfoDataFromMessage(not_null<Message*> message) {
 		result.scheduleRepeatPeriod = item->scheduleRepeatPeriod();
 	}
 	if (item->isDeleted()) {
-		result.flags |= Flag::AyuDeleted;
+		result.flags |= Flag::AxDeleted;
 	}
 	if (item->isBurnt()) {
-		result.flags |= Flag::AyuBurnt;
+		result.flags |= Flag::AxBurnt;
 	}
 	if (!forwarded) {
 		return result;

@@ -41,9 +41,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_dialogs.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "ayu/features/message_shot/message_shot.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "ax/features/message_shot/message_shot.h"
 
 
 namespace HistoryView {
@@ -344,7 +344,7 @@ Document::Document(
 			const auto &data = &_parent->data()->history()->owner();
 			_parent->data()->removeFromSharedMediaIndex();
 			setDocumentLinks(_data, realParent, [=] {
-				const auto &settings = AyuSettings::getInstance();
+				const auto &settings = AxSettings::getInstance();
 				if (!settings.saveDeletedMessages()) {
 					_openl = nullptr;
 				}
@@ -703,7 +703,7 @@ void Document::draw(
 			FillThumbnailOverlay(p, rthumb, rounding, context);
 		}
 
-		if ((radial || (!loaded && !_data->loading()) || _data->waitingForAlbum()) && !AyuFeatures::MessageShot::isTakingShot()) {
+		if ((radial || (!loaded && !_data->loading()) || _data->waitingForAlbum()) && !AxFeatures::MessageShot::isTakingShot()) {
 			const auto backOpacity = (loaded && !_data->uploading()) ? radialOpacity : 1.;
 			p.setPen(Qt::NoPen);
 			p.setBrush(sti->msgDateImgBg);
@@ -1105,7 +1105,7 @@ void Document::drawCornerDownload(
 	if (dataLoaded()
 		|| _data->loadedInMediaCache()
 		|| !downloadInCorner()
-		|| AyuFeatures::MessageShot::isTakingShot()) {
+		|| AxFeatures::MessageShot::isTakingShot()) {
 		return;
 	}
 	auto topMinus = isBubbleTop() ? 0 : st::msgFileTopMinus;

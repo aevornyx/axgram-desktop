@@ -35,8 +35,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
 
-// AyuGram includes
-#include "ayu/features/message_shot/message_shot.h"
+// AxGram includes
+#include "ax/features/message_shot/message_shot.h"
 
 
 namespace Window {
@@ -337,7 +337,7 @@ rpl::producer<bool> CloudList::allShown() const {
 
 void CloudList::setup() {
 	_group->setChangedCallback([=](int selected) {
-		if (AyuFeatures::MessageShot::isChoosingTheme()) {
+		if (AxFeatures::MessageShot::isChoosingTheme()) {
 			return;
 		}
 
@@ -346,8 +346,8 @@ void CloudList::setup() {
 			object.cloud.id ? object.cloud.id : kFakeCloudThemeId));
 	});
 
-	if (AyuFeatures::MessageShot::isChoosingTheme()) {
-		AyuFeatures::MessageShot::resetCustomSelectedEvents() | rpl::on_next([=] {
+	if (AxFeatures::MessageShot::isChoosingTheme()) {
+		AxFeatures::MessageShot::resetCustomSelectedEvents() | rpl::on_next([=] {
 			_group->setValue(-1);
 		}, _outer->lifetime());
 	}
@@ -452,8 +452,8 @@ bool CloudList::applyChangesFrom(std::vector<Data::CloudTheme> &&list) {
 	}
 	_group->setValue(groupValueForId(id));
 
-	if (AyuFeatures::MessageShot::isChoosingTheme()) {
-		if (const auto selected = AyuFeatures::MessageShot::getSelectedFromCustom()) {
+	if (AxFeatures::MessageShot::isChoosingTheme()) {
+		if (const auto selected = AxFeatures::MessageShot::getSelectedFromCustom()) {
 			_group->setValue(groupValueForId(selected.value().id));
 		}
 	}
@@ -544,9 +544,9 @@ void CloudList::insert(int index, const Data::CloudTheme &theme) {
 		}
 		const auto &cloud = i->theme;
 
-		if (AyuFeatures::MessageShot::isChoosingTheme()) {
-			AyuFeatures::MessageShot::setTheme(cloud);
-			AyuFeatures::MessageShot::setCustomSelected(cloud);
+		if (AxFeatures::MessageShot::isChoosingTheme()) {
+			AxFeatures::MessageShot::setTheme(cloud);
+			AxFeatures::MessageShot::setCustomSelected(cloud);
 			_group->setValue(groupValueForId(cloud.id));
 			return;
 		}

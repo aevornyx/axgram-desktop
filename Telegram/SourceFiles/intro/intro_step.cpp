@@ -39,8 +39,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_intro.h"
 #include "styles/style_window.h"
 
-// AyuGram includes
-#include "ayu/ui/ayu_logo.h"
+// AxGram includes
+#include "ax/ui/ax_logo.h"
 
 
 namespace Intro {
@@ -473,8 +473,8 @@ void Step::paintCover(QPainter &p, int top) {
 	st::introCoverRight.paint(p, width() - right - st::introCoverRight.width(), coverHeight - st::introCoverRight.height(), width());
 
 	auto planeTop = top + st::introCoverIconTop;
-	const auto ayuGramIcon = Ui::PixmapFromImage(AyuAssets::currentAppLogo());
-	QIcon(ayuGramIcon).paint(&p, QRect(width() / 2 - ayuGramIcon.width() / 2, planeTop - 16, ayuGramIcon.width(), st::introCoverIcon.height()));
+	const auto axGramIcon = Ui::PixmapFromImage(AxAssets::currentAppLogo());
+	QIcon(axGramIcon).paint(&p, QRect(width() / 2 - axGramIcon.width() / 2, planeTop - 16, axGramIcon.width(), st::introCoverIcon.height()));
 }
 
 int Step::contentLeft() const {

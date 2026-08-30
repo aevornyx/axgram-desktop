@@ -736,7 +736,7 @@ public:
 		return _lifetime;
 	}
 
-	// AyuGram filters
+	// AxGram filters
 	std::optional<long long> dialogId;
 	std::vector<char> filterId;
 	std::optional<bool> showExclude; // whether to show exclude button in the top bar

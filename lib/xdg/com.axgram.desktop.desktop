@@ -1,0 +1,22 @@
+[Desktop Entry]
+Name=AxGram Desktop
+Comment=Desktop version of AxGram - Telegram client with message history
+TryExec=AxGram
+Exec=env DESKTOPINTEGRATION=1 AxGram -- %U
+Icon=com.axgram.desktop
+Terminal=false
+StartupWMClass=AxGram
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;x-scheme-handler/tonsite;
+Keywords=tg;chat;im;messaging;messenger;sms;telegram;tdesktop;
+Actions=quit;
+DBusActivatable=true
+SingleMainWindow=true
+X-GNOME-UsesNotifications=true
+X-GNOME-SingleWindow=true
+
+[Desktop Action quit]
+Exec=AxGram -quit
+Name=Quit AxGram
+Icon=application-exit

@@ -51,7 +51,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h" // showAddContact()
 #include "base/unixtime.h"
 #include "styles/style_boxes.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_ax_icons.h"
 #include "styles/style_profile.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_chat_helpers.h"
@@ -69,7 +69,7 @@ public:
 protected:
 	QSize rightActionSize() const override {
 		return isMutualContact()
-			? QSize(st::ayuContactsMutualIcon.width(), st::ayuContactsMutualIcon.height())
+			? QSize(st::axContactsMutualIcon.width(), st::axContactsMutualIcon.height())
 			: QSize();
 	}
 
@@ -101,8 +101,8 @@ protected:
 			return;
 		}
 		(selected || actionSelected
-			? st::ayuContactsMutualIconOver
-			: st::ayuContactsMutualIcon).paint(p, x, y, outerWidth);
+			? st::axContactsMutualIconOver
+			: st::axContactsMutualIcon).paint(p, x, y, outerWidth);
 	}
 
 private:
@@ -144,7 +144,7 @@ object_ptr<Ui::BoxContent> PrepareContactsBox(
 			if (const auto user = row->peer()->asUser();
 				user && (user->flags() & UserDataFlag::MutualContact)) {
 				delegate()->peerListUiShow()->showToast(
-					tr::ayu_MutualContactInfo(tr::now));
+					tr::ax_MutualContactInfo(tr::now));
 			}
 		}
 

@@ -27,8 +27,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/show.h"
 #include "ui/text/text_utilities.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 
 
 namespace Data {
@@ -1238,7 +1238,7 @@ void Stories::markAsRead(FullStoryId id, bool viewed) {
 		return;
 	}
 
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
+	const auto &ghost = AxSettings::ghost(&_owner->session());
 	if (!ghost.sendReadStories()) {
 		return;
 	}
@@ -1397,7 +1397,7 @@ void Stories::toggleHidden(
 void Stories::sendMarkAsReadRequest(
 		not_null<PeerData*> peer,
 		StoryId tillId) {
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
+	const auto &ghost = AxSettings::ghost(&_owner->session());
 	if (!ghost.sendReadStories()) {
 		return;
 	}
@@ -1432,7 +1432,7 @@ void Stories::checkQuitPreventFinished() {
 void Stories::sendMarkAsReadRequests() {
 	_markReadTimer.cancel();
 
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
+	const auto &ghost = AxSettings::ghost(&_owner->session());
 	if (!ghost.sendReadStories()) {
 		return;
 	}
@@ -1456,7 +1456,7 @@ void Stories::sendIncrementViewsRequests() {
 		return;
 	}
 
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
+	const auto &ghost = AxSettings::ghost(&_owner->session());
 	if (!ghost.sendReadStories()) {
 		return;
 	}
@@ -2311,7 +2311,7 @@ bool Stories::isQuitPrevent() {
 		sendIncrementViewsRequests();
 	}
 
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
+	const auto &ghost = AxSettings::ghost(&_owner->session());
 	if (!ghost.sendReadStories() || (_markReadRequests.empty() && _incrementViewsRequests.empty())) {
 		return false;
 	}

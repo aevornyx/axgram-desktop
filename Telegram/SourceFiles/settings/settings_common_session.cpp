@@ -12,8 +12,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/sections/settings_chat.h"
 #include "settings/sections/settings_main.h"
 
-// AyuGram includes
-#include "ayu/ui/settings/settings_filters.h"
+// AxGram includes
+#include "ax/ui/settings/settings_filters.h"
 
 
 namespace Settings {
@@ -23,7 +23,7 @@ bool HasMenu(Type type) {
 		|| (type == MainId())
 		|| (type == ChatId())
 		|| (type == Experimental::Id())
-		|| (type == AyuFiltersId());
+		|| (type == AxFiltersId());
 }
 
 } // namespace Settings

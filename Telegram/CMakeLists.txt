@@ -21,9 +21,9 @@ add_subdirectory(lib_webrtc)
 add_subdirectory(lib_webview)
 add_subdirectory(codegen)
 
-# AyuGram filters
+# AxGram filters
 add_subdirectory(lib_icu)
-# AyuGram filters
+# AxGram filters
 
 get_filename_component(src_loc SourceFiles REALPATH)
 get_filename_component(res_loc Resources REALPATH)
@@ -100,158 +100,158 @@ PRIVATE
     desktop-app::external_openal
     desktop-app::external_xxhash
 
-    # AyuGram filters
-    ayugram::lib_icu
+    # AxGram filters
+    axgram::lib_icu
 )
 
-set(ayugram_files
-        ayu/ayu_worker.cpp
-        ayu/ayu_worker.h
-        ayu/ayu_url_handlers.cpp
-        ayu/ayu_url_handlers.h
-        ayu/ayu_state.cpp
-        ayu/ayu_state.h
-        ayu/ayu_settings.cpp
-        ayu/ayu_settings.h
-        ayu/ayu_lang.cpp
-        ayu/ayu_lang.h
-        ayu/ayu_infra.cpp
-        ayu/ayu_infra.h
-        ayu/utils/ayu_mapper.cpp
-        ayu/utils/ayu_mapper.h
-        ayu/utils/qt_key_modifiers_extended.h
-        ayu/utils/telegram_helpers.cpp
-        ayu/utils/telegram_helpers.h
-        ayu/utils/windows_utils.cpp
-        ayu/utils/windows_utils.h
-        ayu/utils/rc_manager.cpp
-        ayu/utils/rc_manager.h
-        ayu/utils/taptic_engine/taptic_engine.cpp
-        ayu/utils/taptic_engine/taptic_engine.h
-        ayu/utils/taptic_engine/platform/taptic_engine_dummy.cpp
-        ayu/utils/taptic_engine/platform/taptic_engine_dummy.h
-        ayu/utils/taptic_engine/platform/taptic_engine_mac.mm
-        ayu/utils/taptic_engine/platform/taptic_engine_mac.h
-        ayu/ui/ayu_logo.cpp
-        ayu/ui/ayu_logo.h
-        ayu/ui/toasts.cpp
-        ayu/ui/toasts.h
-        ayu/ui/ayu_userpic.cpp
-        ayu/ui/ayu_userpic.h
-        ayu/ui/utils/ayu_profile_values.cpp
-        ayu/ui/utils/ayu_profile_values.h
-        ayu/ui/utils/color_cut_quantizer.cpp
-        ayu/ui/utils/color_cut_quantizer.h
-        ayu/ui/utils/color_utils.cpp
-        ayu/ui/utils/color_utils.h
-        ayu/ui/utils/palette.cpp
-        ayu/ui/utils/palette.h
-        ayu/ui/utils/itunes_search.cpp
-        ayu/ui/utils/itunes_search.h
-        ayu/ui/settings/ayu_builder.cpp
-        ayu/ui/settings/ayu_builder.h
-        ayu/ui/settings/settings_appearance.cpp
-        ayu/ui/settings/settings_appearance.h
-        ayu/ui/settings/settings_ayu_utils.cpp
-        ayu/ui/settings/settings_ayu_utils.h
-        ayu/ui/settings/settings_chats.cpp
-        ayu/ui/settings/settings_chats.h
-        ayu/ui/settings/settings_general.cpp
-        ayu/ui/settings/settings_general.h
-        ayu/ui/settings/settings_ayu.cpp
-        ayu/ui/settings/settings_ayu.h
-        ayu/ui/settings/settings_filters.cpp
-        ayu/ui/settings/settings_filters.h
-        ayu/ui/settings/settings_main.cpp
-        ayu/ui/settings/settings_main.h
-        ayu/ui/settings/settings_other.cpp
-        ayu/ui/settings/settings_other.h
-        ayu/ui/settings/filters/settings_filters_list.cpp
-        ayu/ui/settings/filters/settings_filters_list.h
-        ayu/ui/settings/filters/per_dialog_filter.cpp
-        ayu/ui/settings/filters/per_dialog_filter.h
-        ayu/ui/settings/filters/edit_filter.cpp
-        ayu/ui/settings/filters/edit_filter.h
-        ayu/ui/context_menu/context_menu.cpp
-        ayu/ui/context_menu/context_menu.h
-        ayu/ui/context_menu/menu_item_subtext.cpp
-        ayu/ui/context_menu/menu_item_subtext.h
-        ayu/ui/message_history/history_inner.cpp
-        ayu/ui/message_history/history_inner.h
-        ayu/ui/message_history/history_item.cpp
-        ayu/ui/message_history/history_item.h
-        ayu/ui/message_history/history_section.cpp
-        ayu/ui/message_history/history_section.h
-        ayu/ui/boxes/edit_mark_box.cpp
-        ayu/ui/boxes/edit_mark_box.h
-        ayu/ui/boxes/font_selector.cpp
-        ayu/ui/boxes/font_selector.h
-        ayu/ui/boxes/import_filters_box.cpp
-        ayu/ui/boxes/import_filters_box.h
-        ayu/ui/boxes/theme_selector_box.cpp
-        ayu/ui/boxes/theme_selector_box.h
-        ayu/ui/boxes/message_shot_box.cpp
-        ayu/ui/boxes/message_shot_box.h
-        ayu/ui/boxes/donate_qr_box.cpp
-        ayu/ui/boxes/donate_qr_box.h
-        ayu/ui/boxes/donate_info_box.cpp
-        ayu/ui/boxes/donate_info_box.h
-        ayu/ui/boxes/plugin_info_box.cpp
-        ayu/ui/boxes/plugin_info_box.h
-        ayu/ui/components/image_view.cpp
-        ayu/ui/components/image_view.h
-        ayu/ui/components/icon_picker.cpp
-        ayu/ui/components/icon_picker.h
-        ayu/ui/components/avatar_corners_preview.cpp
-        ayu/ui/components/avatar_corners_preview.h
-        ayu/ui/components/message_preview.cpp
-        ayu/ui/components/message_preview.h
-        ayu/ui/components/saved_music.cpp
-        ayu/ui/components/saved_music.h
-        ayu/libs/json.hpp
-        ayu/libs/json_ext.hpp
-        ayu/libs/sqlite/sqlite3.c
-        ayu/libs/sqlite/sqlite3.h
-        ayu/libs/sqlite/sqlite_orm.h
-        ayu/features/streamer_mode/platform/streamer_mode_win.cpp
-        ayu/features/streamer_mode/platform/streamer_mode_win.h
-        ayu/features/streamer_mode/platform/streamer_mode_linux.cpp
-        ayu/features/streamer_mode/platform/streamer_mode_linux.h
-        ayu/features/streamer_mode/platform/streamer_mode_mac.mm
-        ayu/features/streamer_mode/platform/streamer_mode_mac.h
-        ayu/features/streamer_mode/streamer_mode.cpp
-        ayu/features/streamer_mode/streamer_mode.h
-        ayu/features/message_shot/message_shot.cpp
-        ayu/features/message_shot/message_shot.h
-        ayu/features/message_shot/message_shot_theme_state.cpp
-        ayu/features/message_shot/message_shot_theme_state.h
-        ayu/features/forward/ayu_forward.cpp
-        ayu/features/forward/ayu_forward.h
-        ayu/features/forward/ayu_sync.cpp
-        ayu/features/forward/ayu_sync.h
-        ayu/features/translator/ayu_translator.cpp
-        ayu/features/translator/ayu_translator.h
-        ayu/features/translator/ayu_translate_provider.cpp
-        ayu/features/translator/ayu_translate_provider.h
-        ayu/features/translator/html_parser.cpp
-        ayu/features/translator/html_parser.h
-        ayu/features/translator/implementations/google.cpp
-        ayu/features/translator/implementations/google.h
-        ayu/features/translator/implementations/yandex.cpp
-        ayu/features/translator/implementations/yandex.h
-        ayu/features/translator/implementations/base.cpp
-        ayu/features/translator/implementations/base.h
-        ayu/features/filters/filters_controller.cpp
-        ayu/features/filters/filters_controller.h
-        ayu/features/filters/filters_cache_controller.cpp
-        ayu/features/filters/filters_cache_controller.h
-        ayu/features/filters/filters_utils.cpp
-        ayu/features/filters/filters_utils.h
-        ayu/data/messages_storage.cpp
-        ayu/data/messages_storage.h
-        ayu/data/entities.h
-        ayu/data/ayu_database.cpp
-        ayu/data/ayu_database.h
+set(axgram_files
+        ax/ax_worker.cpp
+        ax/ax_worker.h
+        ax/ax_url_handlers.cpp
+        ax/ax_url_handlers.h
+        ax/ax_state.cpp
+        ax/ax_state.h
+        ax/ax_promo.cpp
+        ax/ax_promo.h
+        ax/ax_settings.cpp
+        ax/ax_settings.h
+        ax/ax_lang.cpp
+        ax/ax_lang.h
+        ax/ax_infra.cpp
+        ax/ax_infra.h
+        ax/utils/ax_mapper.cpp
+        ax/utils/ax_mapper.h
+        ax/utils/qt_key_modifiers_extended.h
+        ax/utils/telegram_helpers.cpp
+        ax/utils/telegram_helpers.h
+        ax/utils/windows_utils.cpp
+        ax/utils/windows_utils.h
+        ax/utils/ax_update_check.cpp
+        ax/utils/ax_update_check.h
+        ax/utils/rc_manager.cpp
+        ax/utils/rc_manager.h
+        ax/utils/taptic_engine/taptic_engine.cpp
+        ax/utils/taptic_engine/taptic_engine.h
+        ax/utils/taptic_engine/platform/taptic_engine_dummy.cpp
+        ax/utils/taptic_engine/platform/taptic_engine_dummy.h
+        ax/utils/taptic_engine/platform/taptic_engine_mac.mm
+        ax/utils/taptic_engine/platform/taptic_engine_mac.h
+        ax/ui/ax_logo.cpp
+        ax/ui/ax_logo.h
+        ax/ui/toasts.cpp
+        ax/ui/toasts.h
+        ax/ui/ax_userpic.cpp
+        ax/ui/ax_userpic.h
+        ax/ui/utils/ax_profile_values.cpp
+        ax/ui/utils/ax_profile_values.h
+        ax/ui/utils/color_cut_quantizer.cpp
+        ax/ui/utils/color_cut_quantizer.h
+        ax/ui/utils/color_utils.cpp
+        ax/ui/utils/color_utils.h
+        ax/ui/utils/palette.cpp
+        ax/ui/utils/palette.h
+        ax/ui/utils/itunes_search.cpp
+        ax/ui/utils/itunes_search.h
+        ax/ui/settings/ax_builder.cpp
+        ax/ui/settings/ax_builder.h
+        ax/ui/settings/settings_appearance.cpp
+        ax/ui/settings/settings_appearance.h
+        ax/ui/settings/settings_ax_utils.cpp
+        ax/ui/settings/settings_ax_utils.h
+        ax/ui/settings/settings_chats.cpp
+        ax/ui/settings/settings_chats.h
+        ax/ui/settings/settings_general.cpp
+        ax/ui/settings/settings_general.h
+        ax/ui/settings/settings_ax.cpp
+        ax/ui/settings/settings_ax.h
+        ax/ui/settings/settings_filters.cpp
+        ax/ui/settings/settings_filters.h
+        ax/ui/settings/settings_main.cpp
+        ax/ui/settings/settings_main.h
+        ax/ui/settings/settings_other.cpp
+        ax/ui/settings/settings_other.h
+        ax/ui/settings/filters/settings_filters_list.cpp
+        ax/ui/settings/filters/settings_filters_list.h
+        ax/ui/settings/filters/per_dialog_filter.cpp
+        ax/ui/settings/filters/per_dialog_filter.h
+        ax/ui/settings/filters/edit_filter.cpp
+        ax/ui/settings/filters/edit_filter.h
+        ax/ui/context_menu/context_menu.cpp
+        ax/ui/context_menu/context_menu.h
+        ax/ui/context_menu/menu_item_subtext.cpp
+        ax/ui/context_menu/menu_item_subtext.h
+        ax/ui/message_history/history_inner.cpp
+        ax/ui/message_history/history_inner.h
+        ax/ui/message_history/history_item.cpp
+        ax/ui/message_history/history_item.h
+        ax/ui/message_history/history_section.cpp
+        ax/ui/message_history/history_section.h
+        ax/ui/boxes/edit_mark_box.cpp
+        ax/ui/boxes/edit_mark_box.h
+        ax/ui/boxes/font_selector.cpp
+        ax/ui/boxes/font_selector.h
+        ax/ui/boxes/import_filters_box.cpp
+        ax/ui/boxes/import_filters_box.h
+        ax/ui/boxes/theme_selector_box.cpp
+        ax/ui/boxes/theme_selector_box.h
+        ax/ui/boxes/message_shot_box.cpp
+        ax/ui/boxes/message_shot_box.h
+        ax/ui/boxes/plugin_info_box.cpp
+        ax/ui/boxes/plugin_info_box.h
+        ax/ui/components/image_view.cpp
+        ax/ui/components/image_view.h
+        ax/ui/components/icon_picker.cpp
+        ax/ui/components/icon_picker.h
+        ax/ui/components/avatar_corners_preview.cpp
+        ax/ui/components/avatar_corners_preview.h
+        ax/ui/components/message_preview.cpp
+        ax/ui/components/message_preview.h
+        ax/ui/components/saved_music.cpp
+        ax/ui/components/saved_music.h
+        ax/libs/json.hpp
+        ax/libs/json_ext.hpp
+        ax/libs/sqlite/sqlite3.c
+        ax/libs/sqlite/sqlite3.h
+        ax/libs/sqlite/sqlite_orm.h
+        ax/features/streamer_mode/platform/streamer_mode_win.cpp
+        ax/features/streamer_mode/platform/streamer_mode_win.h
+        ax/features/streamer_mode/platform/streamer_mode_linux.cpp
+        ax/features/streamer_mode/platform/streamer_mode_linux.h
+        ax/features/streamer_mode/platform/streamer_mode_mac.mm
+        ax/features/streamer_mode/platform/streamer_mode_mac.h
+        ax/features/streamer_mode/streamer_mode.cpp
+        ax/features/streamer_mode/streamer_mode.h
+        ax/features/message_shot/message_shot.cpp
+        ax/features/message_shot/message_shot.h
+        ax/features/message_shot/message_shot_theme_state.cpp
+        ax/features/message_shot/message_shot_theme_state.h
+        ax/features/forward/ax_forward.cpp
+        ax/features/forward/ax_forward.h
+        ax/features/forward/ax_sync.cpp
+        ax/features/forward/ax_sync.h
+        ax/features/translator/ax_translator.cpp
+        ax/features/translator/ax_translator.h
+        ax/features/translator/ax_translate_provider.cpp
+        ax/features/translator/ax_translate_provider.h
+        ax/features/translator/html_parser.cpp
+        ax/features/translator/html_parser.h
+        ax/features/translator/implementations/google.cpp
+        ax/features/translator/implementations/google.h
+        ax/features/translator/implementations/yandex.cpp
+        ax/features/translator/implementations/yandex.h
+        ax/features/translator/implementations/base.cpp
+        ax/features/translator/implementations/base.h
+        ax/features/filters/filters_controller.cpp
+        ax/features/filters/filters_controller.h
+        ax/features/filters/filters_cache_controller.cpp
+        ax/features/filters/filters_cache_controller.h
+        ax/features/filters/filters_utils.cpp
+        ax/features/filters/filters_utils.h
+        ax/data/messages_storage.cpp
+        ax/data/messages_storage.h
+        ax/data/entities.h
+        ax/data/ax_database.cpp
+        ax/data/ax_database.h
 
         info/profile/info_profile_music_button.cpp
         info/profile/info_profile_music_button.h
@@ -265,7 +265,7 @@ target_precompile_headers(Telegram PRIVATE $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:${sr
 nice_target_sources(Telegram ${src_loc}
 PRIVATE
     ${style_files}
-    ${ayugram_files}
+    ${axgram_files}
 
     api/api_attached_stickers.cpp
     api/api_attached_stickers.h
@@ -2092,7 +2092,7 @@ endif()
 
 nice_target_sources(Telegram ${res_loc}
 PRIVATE
-    qrc/ayu/ayu.qrc
+    qrc/ax/ax.qrc
 
     qrc/emoji_1.qrc
     qrc/emoji_2.qrc
@@ -2153,7 +2153,7 @@ elseif (APPLE)
 #    endif()
 
     if (CMAKE_GENERATOR STREQUAL Xcode)
-        set(ayugram_icons
+        set(axgram_icons
             Default
             Alt
             Discord
@@ -2169,7 +2169,7 @@ elseif (APPLE)
         )
 
 #        set(ICON_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/IconOutput")
-        foreach (icon ${ayugram_icons})
+        foreach (icon ${axgram_icons})
 #            add_custom_command(TARGET Telegram
 #                    PRE_LINK
 #                    COMMAND mkdir -p "${ICON_OUTPUT_DIR}"
@@ -2267,12 +2267,12 @@ if (build_macstore)
     )
 else()
     if (CMAKE_GENERATOR STREQUAL Xcode)
-        set(bundle_identifier "one.ayugram.AyuGramDesktop$<$<CONFIG:Debug>:Debug>")
+        set(bundle_identifier "one.axgram.AxGramDesktop$<$<CONFIG:Debug>:Debug>")
     else()
-        set(bundle_identifier "one.ayugram.AyuGramDesktop")
+        set(bundle_identifier "one.axgram.AxGramDesktop")
     endif()
     set(bundle_entitlements "Telegram.entitlements")
-    set(output_name "AyuGram")
+    set(output_name "AxGram")
 endif()
 
 if (CMAKE_GENERATOR STREQUAL Xcode)
@@ -2314,14 +2314,14 @@ PRIVATE
     TDESKTOP_API_ID=${TDESKTOP_API_ID}
     TDESKTOP_API_HASH=${TDESKTOP_API_HASH}
     G_LOG_DOMAIN="Telegram"
-    U_STATIC_IMPLEMENTATION=1 # AyuGram: do not use __declspec(dllimport) when including icu headers
+    U_STATIC_IMPLEMENTATION=1 # AxGram: do not use __declspec(dllimport) when including icu headers
 )
 
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if (APPLE
     OR is_multi_config
     OR NOT CMAKE_EXECUTABLE_SUFFIX STREQUAL ""
-    OR NOT "${output_name}" STREQUAL "AyuGram")
+    OR NOT "${output_name}" STREQUAL "AxGram")
     set(output_folder ${CMAKE_BINARY_DIR})
 else()
     set(output_folder ${CMAKE_BINARY_DIR}/bin)
@@ -2495,28 +2495,28 @@ endif()
 
 if (LINUX AND DESKTOP_APP_USE_PACKAGED)
     include(GNUInstallDirs)
-    configure_file("../lib/xdg/com.ayugram.desktop.service" "${CMAKE_CURRENT_BINARY_DIR}/com.ayugram.desktop.service" @ONLY)
-    configure_file("../lib/xdg/com.ayugram.desktop.metainfo.xml" "${CMAKE_CURRENT_BINARY_DIR}/com.ayugram.desktop.metainfo.xml" @ONLY)
-    generate_appstream_changelog(Telegram "${CMAKE_SOURCE_DIR}/changelog.txt" "${CMAKE_CURRENT_BINARY_DIR}/com.ayugram.desktop.metainfo.xml")
+    configure_file("../lib/xdg/com.axgram.desktop.service" "${CMAKE_CURRENT_BINARY_DIR}/com.axgram.desktop.service" @ONLY)
+    configure_file("../lib/xdg/com.axgram.desktop.metainfo.xml" "${CMAKE_CURRENT_BINARY_DIR}/com.axgram.desktop.metainfo.xml" @ONLY)
+    generate_appstream_changelog(Telegram "${CMAKE_SOURCE_DIR}/changelog.txt" "${CMAKE_CURRENT_BINARY_DIR}/com.axgram.desktop.metainfo.xml")
     install(TARGETS Telegram RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}")
-    install(FILES "Resources/art/icon16.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/16x16/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon16@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/16x16@2/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon32.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/32x32/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon32@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/32x32@2/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon48.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/48x48/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon48@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/48x48@2/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon64.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/64x64/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon64@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/64x64@2/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon128.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon128@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128@2/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon256.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon256@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256@2/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon512.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/art/icon512@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512@2/apps" RENAME "com.ayugram.desktop.png")
-    install(FILES "Resources/icons/tray_monochrome.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "com.ayugram.desktop-symbolic.svg")
-    install(FILES "Resources/icons/tray_monochrome_attention.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "com.ayugram.desktop-attention-symbolic.svg")
-    install(FILES "Resources/icons/tray_monochrome_mute.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "com.ayugram.desktop-mute-symbolic.svg")
-    install(FILES "../lib/xdg/com.ayugram.desktop.desktop" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.ayugram.desktop.service" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/dbus-1/services")
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.ayugram.desktop.metainfo.xml" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
+    install(FILES "Resources/art/icon16.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/16x16/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon16@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/16x16@2/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon32.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/32x32/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon32@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/32x32@2/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon48.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/48x48/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon48@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/48x48@2/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon64.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/64x64/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon64@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/64x64@2/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon128.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon128@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128@2/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon256.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon256@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256@2/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon512.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/art/icon512@2x.png" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512@2/apps" RENAME "com.axgram.desktop.png")
+    install(FILES "Resources/icons/tray_monochrome.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "com.axgram.desktop-symbolic.svg")
+    install(FILES "Resources/icons/tray_monochrome_attention.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "com.axgram.desktop-attention-symbolic.svg")
+    install(FILES "Resources/icons/tray_monochrome_mute.svg" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/symbolic/apps" RENAME "com.axgram.desktop-mute-symbolic.svg")
+    install(FILES "../lib/xdg/com.axgram.desktop.desktop" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.axgram.desktop.service" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/dbus-1/services")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.axgram.desktop.metainfo.xml" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
 endif()

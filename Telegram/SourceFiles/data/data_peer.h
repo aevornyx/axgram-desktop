@@ -308,7 +308,7 @@ public:
 		return _notify;
 	}
 
-	[[nodiscard]] bool isAyuNoForwards() const;
+	[[nodiscard]] bool isAxNoForwards() const;
 	[[nodiscard]] bool allowsForwarding() const;
 	[[nodiscard]] Data::RestrictionCheckResult amRestricted(
 		ChatRestriction right) const;

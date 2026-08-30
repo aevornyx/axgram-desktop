@@ -55,8 +55,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_facade.h"
 #include "storage/storage_shared_media.h"
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
 
 
 namespace {
@@ -493,8 +493,8 @@ QImage PeerData::GenerateUserpicImage(
 		const auto shape = peer->isForum()
 			? Ui::PeerUserpicShape::Forum
 			: Ui::PeerUserpicShape::Circle;
-		if (AyuUserpic::ShouldOverrideShape(shape)) {
-			radius = AyuUserpic::ComputeRadius(size);
+		if (AxUserpic::ShouldOverrideShape(shape)) {
+			radius = AxUserpic::ComputeRadius(size);
 		}
 	}
 	if (const auto userpic = peer->userpicCloudImage(view)) {
@@ -1695,13 +1695,13 @@ void PeerData::processTopics(const MTPVector<MTPForumTopic> &topics) {
 	}
 }
 
-bool PeerData::isAyuNoForwards() const {
+bool PeerData::isAxNoForwards() const {
 	if (const auto user = asUser()) {
-		return user->isAyuNoForwards();
+		return user->isAxNoForwards();
 	} else if (const auto channel = asChannel()) {
-		return channel->isAyuNoForwards();
+		return channel->isAxNoForwards();
 	} else if (const auto chat = asChat()) {
-		return chat->isAyuNoForwards();
+		return chat->isAxNoForwards();
 	}
 	return true;
 }

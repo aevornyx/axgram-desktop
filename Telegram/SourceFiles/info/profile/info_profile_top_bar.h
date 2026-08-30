@@ -208,7 +208,7 @@ private:
 	const Fn<bool()> _gifPausedChecker;
 	const std::unique_ptr<Badge> _badge;
 	const std::unique_ptr<Badge> _verified;
-	const std::unique_ptr<Badge> _exteraBadge;
+	const std::unique_ptr<Badge> _axBadge;
 
 	const bool _hasActions;
 	const int _minForProgress;

@@ -15,8 +15,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_peer_values.h"
 #include "apiwrap.h"
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
+// AxGram includes
+#include "ax/ax_settings.h"
 
 
 namespace Api {
@@ -117,11 +117,11 @@ void SendProgressManager::send(const Key &key, int progress) {
 		return;
 	}
 
-	// AyuGram sendUploadProgress
-	const auto &ghost = AyuSettings::ghost(_session);
+	// AxGram sendUploadProgress
+	const auto &ghost = AxSettings::ghost(_session);
 	if (!ghost.sendUploadProgress())
 	{
-		DEBUG_LOG(("[AyuGram] Don't send upload progress"));
+		DEBUG_LOG(("[AxGram] Don't send upload progress"));
 		return;
 	}
 

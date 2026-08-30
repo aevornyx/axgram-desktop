@@ -14,8 +14,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
-// AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+// AxGram includes
+#include "ax/ui/ax_userpic.h"
 
 
 namespace Ui {
@@ -277,7 +277,7 @@ void GroupCallUserpics::validateCache(Userpic &userpic) {
 			p.setCompositionMode(QPainter::CompositionMode_Source);
 			p.setBrush(Qt::transparent);
 			p.setPen(pen);
-			AyuUserpic::PaintShape(p, QRectF(skip - size + shift, skip, size, size));
+			AxUserpic::PaintShape(p, QRectF(skip - size + shift, skip, size, size));
 		}
 	}
 }

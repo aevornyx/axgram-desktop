@@ -56,9 +56,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtWidgets/QApplication>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-#include "styles/style_ayu_styles.h"
+// AxGram includes
+#include "ax/ax_settings.h"
+#include "styles/style_ax_styles.h"
 #include "boxes/abstract_box.h"
 
 
@@ -897,7 +897,7 @@ void StickersListWidget::fillFilteredStickersRow() {
 }
 
 void StickersListWidget::addSearchRow(not_null<StickersSet*> set) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = AxSettings::getInstance();
 	if (settings.showOnlyAddedEmojisAndStickers() && !SetInMyList(set->flags)) {
 		return;
 	}
@@ -2281,7 +2281,7 @@ void StickersListWidget::mouseReleaseEvent(QMouseEvent *e) {
 				&& (e->modifiers() & Qt::ControlModifier)) {
 				showStickerSetBox(document, set.id);
 			} else {
-				const auto &settings = AyuSettings::getInstance();
+				const auto &settings = AxSettings::getInstance();
 				auto from = messageSentAnimationInfo(
 					sticker->section,
 					sticker->index,
@@ -2301,7 +2301,7 @@ void StickersListWidget::mouseReleaseEvent(QMouseEvent *e) {
 
 				if (settings.stickerConfirmation() && (_mode == Mode::Full || _mode == Mode::ChatIntro) && _requireConfirmation) {
 					_show->showBox(Ui::MakeConfirmBox({
-						.text = tr::ayu_ConfirmationSticker(),
+						.text = tr::ax_ConfirmationSticker(),
 						.confirmed = sendStickerCallback,
 						.confirmText = tr::lng_send_button()
 					}));
@@ -2713,7 +2713,7 @@ auto StickersListWidget::collectRecentStickers() -> std::vector<Sticker> {
 	result.reserve(cloudCount + recent.size() + customCount);
 	_custom.reserve(cloudCount + recent.size() + customCount);
 
-    const auto &settings = AyuSettings::getInstance();
+    const auto &settings = AxSettings::getInstance();
 
 	auto add = [&](not_null<DocumentData*> document, bool custom) {
 		if (result.size() >= settings.recentStickersCount()) {

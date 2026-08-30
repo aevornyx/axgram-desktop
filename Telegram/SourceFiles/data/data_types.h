@@ -368,7 +368,7 @@ enum class MessageFlag : uint64 {
 	TextAppearing         = (1ULL << 60),
 	TextAppearingStarted  = (1ULL << 61),
 
-	AyuNoForwards         = (1ULL << 63),
+	AxNoForwards         = (1ULL << 63),
 };
 inline constexpr bool is_flag_type(MessageFlag) { return true; }
 using MessageFlags = base::flags<MessageFlag>;

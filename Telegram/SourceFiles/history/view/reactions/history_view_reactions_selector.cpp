@@ -40,10 +40,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat_helpers.h"
 #include "styles/style_chat.h"
 
-// AyuGram includes
-#include "ayu/ui/context_menu/context_menu.h"
-#include "ayu/ayu_settings.h"
-#include "ayu/utils/qt_key_modifiers_extended.h"
+// AxGram includes
+#include "ax/ui/context_menu/context_menu.h"
+#include "ax/ax_settings.h"
+#include "ax/utils/qt_key_modifiers_extended.h"
 
 
 namespace HistoryView::Reactions {
@@ -849,7 +849,7 @@ void Selector::finishExpand() {
 }
 
 void Selector::paintBubble(QPainter &p, int innerWidth) {
-	// AyuGram: removed
+	// AxGram: removed
 }
 
 void Selector::paintEvent(QPaintEvent *e) {
@@ -1389,8 +1389,8 @@ AttachSelectorResult AttachSelectorToMenu(
 		Fn<void(ChosenReaction)> chosen,
 		TextWithEntities about,
 		IconFactory iconFactory) {
-	const auto &settings = AyuSettings::getInstance();
-	if (!AyuUi::needToShowItem(settings.showReactionsPanelInContextMenu())) {
+	const auto &settings = AxSettings::getInstance();
+	if (!AxUi::needToShowItem(settings.showReactionsPanelInContextMenu())) {
 		return AttachSelectorResult::Skipped;
 	}
 
@@ -1450,8 +1450,8 @@ auto AttachSelectorToMenu(
 	IconFactory iconFactory,
 	Fn<bool()> paused)
 -> base::expected<not_null<Selector*>, AttachSelectorResult> {
-	const auto &settings = AyuSettings::getInstance();
-	if (!AyuUi::needToShowItem(settings.showReactionsPanelInContextMenu())) {
+	const auto &settings = AxSettings::getInstance();
+	if (!AxUi::needToShowItem(settings.showReactionsPanelInContextMenu())) {
 		return base::make_unexpected(AttachSelectorResult::Skipped);
 	}
 

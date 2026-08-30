@@ -37,8 +37,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QDateTime>
 #include <QtCore/QLocale>
 
-// AyuGram includes
-#include "ayu/ayu_url_handlers.h"
+// AxGram includes
+#include "ax/ax_url_handlers.h"
 
 
 namespace Core {
@@ -434,7 +434,7 @@ bool UiIntegration::handleUrlClick(
 		}
 	}
 
-	if (AyuUrlHandlers::TryHandleSpotify(url)) {
+	if (AxUrlHandlers::TryHandleSpotify(url)) {
 		return true;
 	}
 
