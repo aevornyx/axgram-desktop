@@ -28,6 +28,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h" // popupMenuExpandedSeparator.
 #include "styles/style_menu_icons.h"
 
+// AyuGram includes
+#include "ax/utils/telegram_helpers.h"
+
+
 namespace {
 
 [[nodiscard]] QString Trim(QString text) {

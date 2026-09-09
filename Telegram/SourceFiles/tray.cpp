@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AxGram includes
 #include "ax/ax_settings.h"
 #include "ax/features/streamer_mode/streamer_mode.h"
+// AyuGram includes
 #include "window/window_controller.h"
 #include "lang_auto.h"
 
@@ -134,25 +135,20 @@ void Tray::rebuildMenu() {
 	}
 
 	if (settings.showStreamerToggleInTray()) {
-		auto turnStreamerModeText = _textUpdates.events(
-		) | rpl::map(
-			[=]
-			{
-				bool streamerModeEnabled = AxFeatures::StreamerMode::isEnabled();
-
-				return streamerModeEnabled
-						   ? tr::ax_DisableStreamerModeTray(tr::now)
-						   : tr::ax_EnableStreamerModeTray(tr::now);
-			});
+		auto turnStreamerModeText = rpl::combine(
+			_textUpdates.events_starting_with({}),
+			AxSettings::getInstance().streamerModeValue()
+		) | rpl::map([=](auto, bool enabled) {
+			return enabled
+					   ? tr::ax_DisableStreamerModeTray(tr::now)
+					   : tr::ax_EnableStreamerModeTray(tr::now);
+		});
 		_tray.addAction(
 			std::move(turnStreamerModeText),
-			[=]
+			[]
 			{
-				if (AxFeatures::StreamerMode::isEnabled()) {
-					AxFeatures::StreamerMode::disable();
-				} else {
-					AxFeatures::StreamerMode::enable();
-				}
+				auto &axSettings = AxSettings::getInstance();
+				axSettings.setStreamerMode(!axSettings.streamerMode());
 			});
 	}
 

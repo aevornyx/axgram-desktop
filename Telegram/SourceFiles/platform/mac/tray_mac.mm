@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/mac/base_utilities_mac.h"
 #include "core/application.h"
 #include "core/sandbox.h"
+#include "core/version.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "ui/painter.h"
@@ -204,7 +205,7 @@ void UpdateIcon(const NSStatusItem *status) {
 	auto resultActive = result;
 	resultActive.detach();
 
-    const auto &settings = AyuSettings::getInstance();
+    const auto &settings = AxSettings::getInstance();
 
 	const auto counter = settings.hideNotificationBadge() ? 0 : Core::App().unreadBadge();
 	const auto muted = settings.hideNotificationBadge() ? 0 : Core::App().unreadBadgeMuted();

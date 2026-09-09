@@ -235,6 +235,33 @@ void BuildQoLToggles(SectionBuilder &builder, AxSectionBuilder &ax) {
 		.getter = &AxSettings::improveLinkPreviews,
 		.setter = &AxSettings::setImproveLinkPreviews,
 	});
+	ax.addCollapsibleToggle({
+		.id = u"ax/confirmations"_q,
+		.title = tr::ax_ConfirmationsTitle(),
+		.checkboxes = {
+			NestedEntry{
+				tr::ax_StickerConfirmation(tr::now),
+				[] { return AxSettings::getInstance().stickerConfirmation(); },
+				[](bool v) { AxSettings::getInstance().setStickerConfirmation(v); }
+			},
+			NestedEntry{
+				tr::ax_GIFConfirmation(tr::now),
+				[] { return AxSettings::getInstance().gifConfirmation(); },
+				[](bool v) { AxSettings::getInstance().setGifConfirmation(v); }
+			},
+			NestedEntry{
+				tr::ax_VoiceConfirmation(tr::now),
+				[] { return AxSettings::getInstance().voiceConfirmation(); },
+				[](bool v) { AxSettings::getInstance().setVoiceConfirmation(v); }
+			},
+			NestedEntry{
+				tr::ax_RoundConfirmation(tr::now),
+				[] { return AxSettings::getInstance().roundConfirmation(); },
+				[](bool v) { AxSettings::getInstance().setRoundConfirmation(v); }
+			}
+		},
+		.toggledWhenAll = false,
+	});
 	ax.addSettingToggle({
 		.id = u"ax/showMessageSeconds"_q,
 		.altIds = { u"ax/formatTimeWithSeconds"_q },
@@ -272,29 +299,6 @@ void BuildQoLToggles(SectionBuilder &builder, AxSectionBuilder &ax) {
 			}
 		},
 		.toggledWhenAll = false,
-	});
-
-	ax.addSectionDivider();
-
-	builder.addSubsectionTitle(tr::ax_ConfirmationsTitle());
-
-	ax.addSettingToggle({
-		.id = u"ax/stickerConfirmation"_q,
-		.title = tr::ax_StickerConfirmation(),
-		.getter = &AxSettings::stickerConfirmation,
-		.setter = &AxSettings::setStickerConfirmation,
-	});
-	ax.addSettingToggle({
-		.id = u"ax/gifConfirmation"_q,
-		.title = tr::ax_GIFConfirmation(),
-		.getter = &AxSettings::gifConfirmation,
-		.setter = &AxSettings::setGifConfirmation,
-	});
-	ax.addSettingToggle({
-		.id = u"ax/voiceConfirmation"_q,
-		.title = tr::ax_VoiceConfirmation(),
-		.getter = &AxSettings::voiceConfirmation,
-		.setter = &AxSettings::setVoiceConfirmation,
 	});
 }
 

@@ -6,12 +6,12 @@
 // Распространяется по GNU GPL v3 — см. LICENSE и NOTICE.md.
 #pragma once
 
+class QWidget;
+
 namespace AxFeatures::StreamerMode {
 
-bool isEnabled();
-void enable();
-void disable();
+void apply(bool enabled);
 void hideWidgetWindow(QWidget *widget);
 void showWidgetWindow(QWidget *widget);
 
-}
+} // namespace AxFeatures::StreamerMode

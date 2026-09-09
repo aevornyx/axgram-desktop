@@ -44,6 +44,14 @@ void BuildStickersAndEmoji(SectionBuilder &builder, AxSectionBuilder &ax) {
 		.setter = &AxSettings::setShowOnlyAddedEmojisAndStickers,
 	});
 
+	ax.addSettingToggle({
+		.id = u"ax/unlimitedRecentStickers"_q,
+		.altIds = { u"ax/recentStickersCount"_q },
+		.title = tr::ax_SettingsUnlimitedRecentStickers(),
+		.getter = &AxSettings::unlimitedRecentStickers,
+		.setter = &AxSettings::setUnlimitedRecentStickers,
+	});
+
 	ax.addCollapsibleToggle({
 		.id = u"ax/hideReactions"_q,
 		.title = tr::ax_HideReactions(),
@@ -65,25 +73,6 @@ void BuildStickersAndEmoji(SectionBuilder &builder, AxSectionBuilder &ax) {
 			}
 		},
 		.toggledWhenAll = false,
-	});
-
-	ax.addSectionDivider();
-}
-
-void BuildRecentStickersLimit(SectionBuilder &builder, AxSectionBuilder &ax) {
-	auto *settings = &AxSettings::getInstance();
-
-	ax.addSlider({
-		.id = u"ax/recentStickersCount"_q,
-		.title = tr::ax_SettingsRecentStickersCount(),
-		.steps = 200 + 1,
-		.current = settings->recentStickersCount(),
-		.indexToValue = [](int index) { return index; },
-		.onChanged = nullptr,
-		.onFinalChanged = [](int amount) {
-			AxSettings::getInstance().setRecentStickersCount(amount);
-		},
-		.formatLabel = [](int amount) { return QString::number(amount); },
 	});
 
 	ax.addSectionDivider();
@@ -467,7 +456,6 @@ const auto kMeta = BuildHelper({
 
 	builder.addSkip();
 	BuildStickersAndEmoji(builder, ax);
-	BuildRecentStickersLimit(builder, ax);
 	BuildGroupsAndChannels(builder, ax);
 	BuildMarks(builder, ax, previewState);
 	BuildWideMessagesMultiplier(builder, ax, previewState);

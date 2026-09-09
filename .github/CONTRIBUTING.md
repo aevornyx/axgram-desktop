@@ -34,7 +34,7 @@ Telegram Desktop is advancing quickly. It is therefore critical that you pull up
 
 To pull in upstream changes:
 
-    git remote add upstream https://github.com/AxGram/AxGramDesktop.git
+    git remote add upstream https://github.com/aevornyx/axgram-desktop.git
     git fetch upstream master
 
 Check the log to be sure that you actually want the changes, before merging:
@@ -107,8 +107,8 @@ Before you submit a pull request, please test your changes. Verify that Telegram
 [help_fork_repo]: https://help.github.com/articles/fork-a-repo/
 [help_change_commit_message]: https://help.github.com/articles/changing-a-commit-message/
 [commit_message]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
-[pr]: https://github.com/AxGram/AxGramDesktop/compare
-[build_instructions]: https://github.com/AxGram/AxGramDesktop/blob/dev/docs
+[pr]: https://github.com/aevornyx/axgram-desktop/compare
+[build_instructions]: https://github.com/aevornyx/axgram-desktop/blob/dev/docs
 [closing-issues-via-commit-messages]: https://help.github.com/articles/closing-issues-via-commit-messages/
 [translate]: https://crowdin.com/project/axgram
-[android_repo]: https://github.com/AxGram/AxGram4A
+[android_repo]: https://github.com/aevornyx/axgram-android

@@ -20,6 +20,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/options.h"
 #include "styles/style_chat_helpers.h"
 
+// AyuGram includes
+#include "ax/ax_settings.h"
+
+
 namespace ChatHelpers {
 namespace {
 
