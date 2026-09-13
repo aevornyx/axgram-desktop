@@ -2690,7 +2690,7 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		}
 	}
 	const auto key = _peer->userpicUniqueKey(_userpicView);
-	const auto ayuState = AyuUserpic::PackedState();
+	const auto ayuState = AxUserpic::PackedState();
 	const auto overlayActive = _uploadOverlay && _uploadOverlay->shown();
 	const auto awaitingCloud = _waitingUserpicCloudLoad
 		&& !_peer->userpicCloudImage(_userpicView);
@@ -2704,7 +2704,7 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		const auto scaled = fullSize * style::DevicePixelRatio();
 		auto image = QImage();
 		if (const auto broadcast = _peer->monoforumBroadcast()) {
-			const auto ayuOverride = AyuUserpic::ShouldOverrideShape(
+			const auto ayuOverride = AxUserpic::ShouldOverrideShape(
 				Ui::PeerUserpicShape::Monoforum);
 			image = PeerData::GenerateUserpicImage(
 				broadcast,
@@ -2712,7 +2712,7 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 				scaled,
 				ayuOverride
 					? std::optional<int>(
-						AyuUserpic::ComputeRadius(scaled))
+						AxUserpic::ComputeRadius(scaled))
 					: std::optional<int>(0));
 			if (!ayuOverride) {
 				if (_monoforumMask.isNull()) {
@@ -2733,9 +2733,9 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		} else {
 			const auto radius = (_source == Source::Community)
 				? std::optional<int>(
-					AyuUserpic::ShouldOverrideShape(
+					AxUserpic::ShouldOverrideShape(
 						Ui::PeerUserpicShape::Forum)
-						? AyuUserpic::ComputeRadius(scaled)
+						? AxUserpic::ComputeRadius(scaled)
 						: int(
 							scaled
 							* Ui::ForumUserpicRadiusMultiplier()))

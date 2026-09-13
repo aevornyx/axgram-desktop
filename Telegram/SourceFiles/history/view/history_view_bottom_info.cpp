@@ -579,7 +579,7 @@ void BottomInfo::layoutDateText() {
 		TextWithEntities burnt;
 		if (_data.flags & Data::Flag::AxBurnt) {
 			burnt = Ui::Text::IconEmoji(&st::burntIcon);
-			if (!(_data.flags & Data::Flag::AyuDeleted) && edited.empty()) {
+			if (!(_data.flags & Data::Flag::AxDeleted) && edited.empty()) {
 				burnt.append(' ');
 			}
 		}

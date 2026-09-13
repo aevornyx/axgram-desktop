@@ -53,7 +53,7 @@ void PaintCommunityUserpicEffect(
 	const auto version = style::PaletteVersion();
 	const auto rgba = color.rgba();
 	const auto peek = size * kPeek;
-	const auto ayuState = AyuUserpic::PackedState();
+	const auto ayuState = AxUserpic::PackedState();
 	const auto regenerate = cache.image.isNull()
 		|| (cache.size != size)
 		|| (cache.color != rgba)
@@ -80,9 +80,9 @@ void PaintCommunityUserpicEffect(
 		auto q = QPainter(&cache.image);
 		auto hq = PainterHighQualityEnabler(q);
 		const auto gap = size * kGap;
-		const auto rounding = AyuUserpic::ShouldOverrideShape(
+		const auto rounding = AxUserpic::ShouldOverrideShape(
 			Ui::PeerUserpicShape::Forum)
-			? AyuUserpic::ComputeRadiusF(size)
+			? AxUserpic::ComputeRadiusF(size)
 			: size * Ui::ForumUserpicRadiusMultiplier();
 
 		// The userpic and every card share a pivot on the userpic's left edge
