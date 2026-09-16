@@ -2053,7 +2053,7 @@ QString TryConvertUrlToLocal(QString url) {
 			}
 			return base + added + (params.isEmpty() ? QString() : '&' + params);
 		} else if (const auto axSettingsMatch = regex_match(
-			u"^(?:axSettings|exteraSettings)/?\\?(.+)$"_q, query, matchOptions)) {
+			u"^axSettings/?\\?(.+)$"_q, query, matchOptions)) {
 			return u"tg://axsettings?"_q + axSettingsMatch->captured(1);
 		} else if (const auto usernameMatch = regex_match(u"^"
 			"([a-zA-Z0-9\\.\\_]+)"

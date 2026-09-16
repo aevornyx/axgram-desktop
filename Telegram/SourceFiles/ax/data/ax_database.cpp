@@ -12,7 +12,7 @@
 
 using namespace sqlite_orm;
 auto storage = make_storage(
-	"./tdata/ayudata.db",
+	"./tdata/axdata.db",
 	make_table<SchemaVersion>(
 		"SchemaVersion",
 		make_column("id", &SchemaVersion::id, primary_key()),
@@ -211,20 +211,38 @@ namespace AxDatabase {
 void moveCurrentDatabase() {
 	const auto time = base::unixtime::now();
 
-	if (QFile::exists("./tdata/ayudata.db")) {
-		QFile::rename("./tdata/ayudata.db", QString("./tdata/ayudata_%1.db").arg(time));
+	if (QFile::exists("./tdata/axdata.db")) {
+		QFile::rename("./tdata/axdata.db", QString("./tdata/axdata_%1.db").arg(time));
 	}
 
-	if (QFile::exists("./tdata/ayudata.db-shm")) {
-		QFile::rename("./tdata/ayudata.db-shm", QString("./tdata/ayudata_%1.db-shm").arg(time));
+	if (QFile::exists("./tdata/axdata.db-shm")) {
+		QFile::rename("./tdata/axdata.db-shm", QString("./tdata/axdata_%1.db-shm").arg(time));
 	}
 
-	if (QFile::exists("./tdata/ayudata.db-wal")) {
-		QFile::rename("./tdata/ayudata.db-wal", QString("./tdata/ayudata_%1.db-wal").arg(time));
+	if (QFile::exists("./tdata/axdata.db-wal")) {
+		QFile::rename("./tdata/axdata.db-wal", QString("./tdata/axdata_%1.db-wal").arg(time));
 	}
 }
 
+void migrateLegacyDatabase() {
+	// AxGram: база называлась ayudata.db по исходному проекту. Переносим её
+	// один раз, иначе накопленные удалённые сообщения остались бы в файле,
+	// который приложение больше не открывает.
+	if (QFile::exists("./tdata/axdata.db")) {
+		return;
+	}
+	if (!QFile::exists("./tdata/ayudata.db")) {
+		return;
+	}
+	LOG(("Database: migrating ayudata.db to axdata.db"));
+	QFile::rename("./tdata/ayudata.db", "./tdata/axdata.db");
+	QFile::rename("./tdata/ayudata.db-shm", "./tdata/axdata.db-shm");
+	QFile::rename("./tdata/ayudata.db-wal", "./tdata/axdata.db-wal");
+}
+
 void initialize() {
+	migrateLegacyDatabase();
+
 	try {
 		storage.sync_schema(true);
 

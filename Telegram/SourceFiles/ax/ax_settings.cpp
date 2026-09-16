@@ -23,13 +23,28 @@
 
 #include <fstream>
 #include <QApplication>
+#include <QFile>
 
 using json = nlohmann::json;
 
 namespace {
 
+QString settingsFile() {
+	return cWorkingDir() + u"tdata/ax_settings.json"_q;
+}
+
 std::string getSettingsPath() {
-	return (cWorkingDir() + u"tdata/ayu_settings.json"_q).toStdString();
+	// AxGram: настройки лежали в ayu_settings.json по исходному проекту.
+	// Переносим файл один раз, иначе пользователь получил бы настройки
+	// по умолчанию и решил, что всё сбросилось.
+	const auto path = settingsFile();
+	if (!QFile::exists(path)) {
+		const auto legacy = cWorkingDir() + u"tdata/ayu_settings.json"_q;
+		if (QFile::exists(legacy)) {
+			QFile::rename(legacy, path);
+		}
+	}
+	return path.toStdString();
 }
 
 void repaintApp() {

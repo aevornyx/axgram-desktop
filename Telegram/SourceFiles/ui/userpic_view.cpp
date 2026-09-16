@@ -53,19 +53,19 @@ void PaintCommunityUserpicEffect(
 	const auto version = style::PaletteVersion();
 	const auto rgba = color.rgba();
 	const auto peek = size * kPeek;
-	const auto ayuState = AxUserpic::PackedState();
+	const auto axState = AxUserpic::PackedState();
 	const auto regenerate = cache.image.isNull()
 		|| (cache.size != size)
 		|| (cache.color != rgba)
 		|| (cache.paletteVersion != version)
 		|| (cache.dpr != dpr)
-		|| (cache.ayuState != ayuState);
+		|| (cache.axState != axState);
 	if (regenerate) {
 		cache.size = size;
 		cache.color = rgba;
 		cache.paletteVersion = version;
 		cache.dpr = dpr;
-		cache.ayuState = ayuState;
+		cache.axState = axState;
 
 		const auto imageW = int(std::ceil((peek + size * kCover) * dpr));
 		const auto imageH = int(std::ceil(size * dpr));

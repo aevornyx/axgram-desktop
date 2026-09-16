@@ -2690,31 +2690,31 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		}
 	}
 	const auto key = _peer->userpicUniqueKey(_userpicView);
-	const auto ayuState = AxUserpic::PackedState();
+	const auto axState = AxUserpic::PackedState();
 	const auto overlayActive = _uploadOverlay && _uploadOverlay->shown();
 	const auto awaitingCloud = _waitingUserpicCloudLoad
 		&& !_peer->userpicCloudImage(_userpicView);
 	if (!overlayActive
 		&& !awaitingCloud
-		&& (_userpicUniqueKey != key || _userpicAyuState != ayuState)) {
+		&& (_userpicUniqueKey != key || _userpicAxState != axState)) {
 		_waitingUserpicCloudLoad = false;
 		_userpicUniqueKey = key;
-		_userpicAyuState = ayuState;
+		_userpicAxState = axState;
 		const auto fullSize = st::infoProfileTopBarPhotoSize;
 		const auto scaled = fullSize * style::DevicePixelRatio();
 		auto image = QImage();
 		if (const auto broadcast = _peer->monoforumBroadcast()) {
-			const auto ayuOverride = AxUserpic::ShouldOverrideShape(
+			const auto axOverride = AxUserpic::ShouldOverrideShape(
 				Ui::PeerUserpicShape::Monoforum);
 			image = PeerData::GenerateUserpicImage(
 				broadcast,
 				_userpicView,
 				scaled,
-				ayuOverride
+				axOverride
 					? std::optional<int>(
 						AxUserpic::ComputeRadius(scaled))
 					: std::optional<int>(0));
-			if (!ayuOverride) {
+			if (!axOverride) {
 				if (_monoforumMask.isNull()) {
 					_monoforumMask = Ui::MonoforumShapeMask(Size(scaled));
 				}

@@ -3417,8 +3417,8 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 			options,
 			forwardOptions);
 		const auto items = history->owner().idsToItems(msgIds);
-		const auto ayuForwarding = AxForward::isAyuForwardNeeded(items)
-			|| AxForward::isFullAyuForwardNeeded(items.front());
+		const auto axForwarding = AxForward::isAxForwardNeeded(items)
+			|| AxForward::isFullAxForwardNeeded(items.front());
 
 		if ((!state->submit || axForwarding) && successCallback) {
 			successCallback();

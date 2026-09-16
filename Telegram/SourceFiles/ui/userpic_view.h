@@ -26,7 +26,7 @@ struct CommunityUserpicEffect {
 	QRgb color = 0;
 	int paletteVersion = 0;
 	int dpr = 0;
-	uint8 ayuState = 0xFF;
+	uint8 axState = 0xFF;
 };
 
 void PaintCommunityUserpicEffect(
