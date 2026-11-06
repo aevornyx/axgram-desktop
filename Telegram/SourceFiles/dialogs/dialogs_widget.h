@@ -39,6 +39,10 @@ class TopBarWidget;
 class ContactStatus;
 } // namespace HistoryView
 
+namespace style {
+struct InputField;
+} // namespace style
+
 namespace Ui {
 class AbstractButton;
 class IconButton;
@@ -162,6 +166,7 @@ protected:
 	void paintEvent(QPaintEvent *e) override;
 
 private:
+	void refreshSearchStyle();
 	struct SearchProcessState {
 		base::flat_map<QString, MTPmessages_Messages> cache;
 		base::flat_map<mtpRequestId, QString> queries;
@@ -332,6 +337,7 @@ private:
 		object_ptr<Ui::AbstractButton> under;
 	} _mainMenu;
 	object_ptr<Ui::IconButton> _searchForNarrowLayout;
+	std::unique_ptr<style::InputField> _searchStyle;
 	object_ptr<Ui::InputField> _search;
 	object_ptr<Ui::FadeWrapScaled<Ui::IconButton>> _chooseFromUser;
 	object_ptr<Ui::FadeWrapScaled<Ui::IconButton>> _jumpToDate;

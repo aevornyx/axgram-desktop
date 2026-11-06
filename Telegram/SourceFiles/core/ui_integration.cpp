@@ -6,6 +6,10 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/ui_integration.h"
+#include "ax/ui/appearance/glass_controls.h"
+#include "styles/style_glass_rail.h"
+#include "ui/widgets/popup_menu.h"
+#include "ui/power_saving.h"
 
 #include "api/api_text_entities.h"
 #include "core/local_url_handlers.h"
@@ -476,6 +480,26 @@ rpl::producer<> UiIntegration::forcePopupMenuHideRequests() {
 }
 
 void UiIntegration::preparePopupMenu(not_null<QWidget*> widget) {
+	if (const auto popup = dynamic_cast<Ui::PopupMenu*>(widget.get())) {
+		const auto refresh = [=] {
+			const auto enabled = AxGlass::Enabled();
+			popup->menu()->setItemSelectionGeometry(
+				enabled ? st::axGlassMenuRadius : 0,
+				enabled ? QMargins(st::axGlassMenuInset, st::axGlassMenuVerticalInset,
+					st::axGlassMenuInset, st::axGlassMenuVerticalInset) : QMargins(),
+				AxGlass::MotionAllowed());
+		};
+		refresh();
+		if (!popup->property("axGlassMenuConnected").toBool()) {
+			popup->setProperty("axGlassMenuConnected", true);
+			rpl::merge(
+				PowerSaving::Changes(),
+				AxSettings::getInstance().glassFoldersChanges() | rpl::to_empty,
+				style::PaletteChanged()
+			) | rpl::on_next(refresh, popup->lifetime());
+		}
+	}
+
 	if (AxSettings::getInstance().streamerMode()) {
 		AxFeatures::StreamerMode::hideWidgetWindow(widget);
 	}

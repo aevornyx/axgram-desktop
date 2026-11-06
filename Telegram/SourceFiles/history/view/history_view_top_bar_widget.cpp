@@ -73,6 +73,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AxGram includes
 #include "ax/ax_settings.h"
+#include "ax/ui/appearance/glass_rail.h"
+#include "ax/ui/appearance/glass_controls.h"
+#include "window/themes/window_theme.h"
 #include "boxes/peers/edit_participants_box.h"
 #include "data/data_chat_filters.h"
 #include "history/admin_log/history_admin_log_section.h"
@@ -126,10 +129,10 @@ TopBarWidget::TopBarWidget(
 , _controller(controller)
 , _primaryWindow(controller->isPrimary())
 , _clear(this, tr::lng_selected_clear(), st::topBarClearButton)
-, _forward(this, tr::lng_selected_forward(), st::defaultActiveButton)
-, _sendNow(this, tr::lng_selected_send_now(), st::defaultActiveButton)
-, _delete(this, tr::lng_selected_delete(), st::defaultActiveButton)
-, _messageShot(this, tr::ax_MessageShotTopBarText(), st::defaultActiveButton)
+, _forward(this, tr::lng_selected_forward(), st::topBarSelectionAction)
+, _sendNow(this, tr::lng_selected_send_now(), st::topBarSelectionAction)
+, _delete(this, tr::lng_selected_delete(), st::topBarSelectionAction)
+, _messageShot(this, tr::ax_MessageShotTopBarText(), st::topBarSelectionAction)
 , _back(this, st::historyTopBarBack)
 , _cancelChoose(this, st::topBarCloseChoose)
 , _call(this, st::topBarCall)
@@ -142,6 +145,9 @@ TopBarWidget::TopBarWidget(
 , _titlePeerText(st::windowMinWidth / 3)
 , _onlineUpdater([=] { updateOnlineDisplay(); }) {
 	setAttribute(Qt::WA_OpaquePaintEvent);
+	AxSettings::getInstance().glassFoldersChanges(
+	) | rpl::on_next([=] { update(); }, lifetime());
+
 
 	_clear->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 	_forward->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
@@ -545,7 +551,13 @@ void TopBarWidget::paintEvent(QPaintEvent *e) {
 		: -st::topBarHeight;
 	const auto slidingTop = std::max(selectedButtonsTop, searchFieldTop);
 
-	p.fillRect(QRect(0, 0, width(), st::topBarHeight), st::topBarBg);
+	const auto background = QRect(0, 0, width(), st::topBarHeight);
+	if (AxGlass::Enabled()) {
+		AxGlass::PaintPanel(
+			p, background, st::topBarBg->c, Window::Theme::IsNightMode());
+	} else {
+		p.fillRect(background, st::topBarBg);
+	}
 	if (slidingTop < 0) {
 		p.translate(0, slidingTop + st::topBarHeight);
 		paintTopBar(p);

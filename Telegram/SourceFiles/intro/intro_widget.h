@@ -205,6 +205,8 @@ private:
 	object_ptr<Ui::FadeWrap<Ui::IconButton>> _back;
 	object_ptr<Ui::FadeWrap<Ui::RoundButton>> _update = { nullptr };
 	object_ptr<Ui::FadeWrap<Ui::RoundButton>> _settings;
+	object_ptr<Ui::FadeWrap<Ui::RoundButton>> _theme = { nullptr };
+	qreal _welcomeElapsed = 1400.;
 	object_ptr<Ui::FadeWrap<Ui::FlatLabel>> _testModeLabel = { nullptr };
 
 	object_ptr<Ui::FadeWrap<Ui::RoundButton>> _next;

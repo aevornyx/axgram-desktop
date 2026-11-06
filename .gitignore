@@ -75,3 +75,20 @@ settings.local.json
 
 # Project specific
 Telegram/SourceFiles/_other/packer_private.h
+
+# Private deployment and signing material.
+.env.*
+!.env.example
+!.env.*.example
+*.p12
+*.pfx
+*.session
+*.keystore
+*.jks
+/TelegramForcePortable/
+/tdata/
+
+# Publish maintained native test sources; keep generated test artifacts private.
+!/Telegram/Tests/
+/Telegram/Tests/*
+!/Telegram/Tests/*.cpp

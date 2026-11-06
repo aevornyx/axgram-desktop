@@ -40,10 +40,8 @@ public:
 	void setUnreadCount(int index, int unreadCount, bool muted);
 	void setTabsMode(ChatsFiltersTabsMode mode);
 	void setSectionIcons(std::vector<const style::internal::Icon*> icons);
-	void setLockedFrom(int index);
-	[[nodiscard]] int lockedFrom() const {
-		return _lockedFrom;
-	}
+	void setLockedSections(std::vector<int> indices);
+	[[nodiscard]] bool isSectionLocked(int index) const;
 
 	[[nodiscard]] rpl::producer<int> contextMenuRequested() const;
 	[[nodiscard]] rpl::producer<> lockedClicked() const;
@@ -76,7 +74,7 @@ protected:
 
 private:
 	[[nodiscard]] QImage cacheUnreadCount(int count, bool muted) const;
-	[[nodiscard]] int calculateLockedFromX() const;
+	[[nodiscard]] int sectionAtX(int x) const;
 	[[nodiscard]] auto sectionIcon(int index) const
 	-> const style::internal::Icon*;
 	[[nodiscard]] int iconExtraWidth(const style::internal::Icon *icon) const;
@@ -99,8 +97,7 @@ private:
 	std::vector<const style::internal::Icon*> _sectionIcons;
 	std::vector<int> _cachedBadgeWidths;
 	int _cachedBadgeHeight = 0;
-	int _lockedFrom = 0;
-	int _lockedFromX = 0;
+	std::vector<int> _lockedSections;
 	bool _lockedPressed = false;
 	std::optional<Ui::RoundRect> _bar;
 	std::optional<Ui::RoundRect> _barActive;

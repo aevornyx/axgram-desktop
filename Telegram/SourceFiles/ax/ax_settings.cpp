@@ -5,6 +5,7 @@
 //
 // Распространяется по GNU GPL v3 — см. LICENSE и NOTICE.md.
 #include "ax/ax_settings.h"
+#include "ax/data/media_storage.h"
 
 #include "lang_auto.h"
 #include "tray.h"
@@ -547,6 +548,14 @@ void AxSettings::validate() {
 	}
 }
 
+void AxSettings::setArchiveMediaLimitMb(int value) {
+	if (value != -1 && value != 0 && value != 512 && value != 2048 && value != 5120 && value != 10240) value = 5120;
+	AxMedia::SetLimitMb(value);
+	if (_archiveMediaLimitMb.current() == value) return;
+	_archiveMediaLimitMb = value;
+	save();
+}
+
 void AxSettings::setSaveDeletedMessages(bool val) {
 	if (_saveDeletedMessages.current() == val) return;
 	_saveDeletedMessages = val;
@@ -673,7 +682,7 @@ void AxSettings::setIncreaseWebviewWidth(bool val) {
 void AxSettings::setMaterialSwitches(bool val) {
 	if (_materialSwitches.current() == val) return;
 	_materialSwitches = val;
-	AxUiSettings::setMaterialSwitches(val);
+	AxUiSettings::setMaterialSwitches(val && glassFolders());
 	repaintApp();
 	save();
 }
@@ -960,6 +969,17 @@ void AxSettings::setHideNotificationBadge(bool val) {
 	save();
 }
 
+void AxSettings::setGlassFolders(bool val) {
+	if (_glassFolders.current() == val) {
+		return;
+	}
+	_glassFolders = val;
+	AxUiSettings::setAnimatedIconsEnabled(val);
+	AxUiSettings::setMaterialSwitches(val && materialSwitches());
+	repaintApp();
+	save();
+}
+
 void AxSettings::setHideAllChatsFolder(bool val) {
 	if (_hideAllChatsFolder.current() == val) return;
 	_hideAllChatsFolder = val;
@@ -1094,6 +1114,7 @@ void to_json(nlohmann::json &j, const AxSettings &s) {
 		{"ghostModeSettings", ghostAccounts},
 		{"useGlobalGhostMode", s._useGlobalGhostMode.current()},
 		{"saveDeletedMessages", s._saveDeletedMessages.current()},
+		{"archiveMediaLimitMb", s._archiveMediaLimitMb.current()},
 		{"saveMessagesHistory", s._saveMessagesHistory.current()},
 		{"saveForBots", s._saveForBots.current()},
 		{"shadowBanIds", s._shadowBanIds},
@@ -1161,6 +1182,7 @@ void to_json(nlohmann::json &j, const AxSettings &s) {
 		{"monoFont", s._monoFont.current()},
 		{"hideNotificationCounters", s._hideNotificationCounters.current()},
 		{"hideNotificationBadge", s._hideNotificationBadge.current()},
+		{"glassFolders", s._glassFolders.current()},
 		{"hideAllChatsFolder", s._hideAllChatsFolder.current()},
 		{"channelBottomButton", s._channelBottomButton.current()},
 		{"quickAdminShortcuts", s._quickAdminShortcuts.current()},
@@ -1198,6 +1220,8 @@ void from_json(const nlohmann::json &j, AxSettings &s) {
 
 	s._useGlobalGhostMode = j.value("useGlobalGhostMode", defaults._useGlobalGhostMode.current());
 	s._saveDeletedMessages = j.value("saveDeletedMessages", defaults._saveDeletedMessages.current());
+	const auto mediaLimit = j.value("archiveMediaLimitMb", defaults._archiveMediaLimitMb.current());
+	s._archiveMediaLimitMb = (mediaLimit == -1 || mediaLimit == 0 || mediaLimit == 512 || mediaLimit == 2048 || mediaLimit == 5120 || mediaLimit == 10240) ? mediaLimit : 5120;
 	s._saveMessagesHistory = j.value("saveMessagesHistory", defaults._saveMessagesHistory.current());
 	s._saveForBots = j.value("saveForBots", defaults._saveForBots.current());
 	s._shadowBanIds = j.value("shadowBanIds", defaults._shadowBanIds);
@@ -1265,6 +1289,7 @@ void from_json(const nlohmann::json &j, AxSettings &s) {
 	s._monoFont = j.value("monoFont", defaults._monoFont.current());
 	s._hideNotificationCounters = j.value("hideNotificationCounters", defaults._hideNotificationCounters.current());
 	s._hideNotificationBadge = j.value("hideNotificationBadge", defaults._hideNotificationBadge.current());
+	s._glassFolders = j.value("glassFolders", defaults._glassFolders.current());
 	s._hideAllChatsFolder = j.value("hideAllChatsFolder", defaults._hideAllChatsFolder.current());
 	s._channelBottomButton = j.value("channelBottomButton", defaults._channelBottomButton.current());
 	s._quickAdminShortcuts = j.value("quickAdminShortcuts", defaults._quickAdminShortcuts.current());

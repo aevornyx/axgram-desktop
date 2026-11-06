@@ -6,8 +6,9 @@
 // Распространяется по GNU GPL v3 — см. LICENSE и NOTICE.md.
 #include "ax/utils/ax_mapper.h"
 
-#include "apiwrap.h"
+#include "api/api_media.h"
 #include "api/api_text_entities.h"
+#include "apiwrap.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_components.h"
@@ -57,6 +58,9 @@ std::vector<char> serializeObject(MTPObject object) {
 
 template<typename MTPObject>
 MTPObject deserializeObject(std::vector<char> serialized) {
+	if (serialized.empty() || (serialized.size() % sizeof(mtpPrime))) {
+		return MTPObject();
+	}
 	gsl::span<char> span(serialized.data(), serialized.size());
 
 	auto from = reinterpret_cast<const mtpPrime*>(span.data());
@@ -65,6 +69,7 @@ MTPObject deserializeObject(std::vector<char> serialized) {
 	MTPObject data;
 	if (!data.read(from, end)) {
 		LOG(("AxMapper: Failed to deserialize object"));
+		return MTPObject();
 	}
 	return data;
 }
@@ -91,6 +96,16 @@ std::pair<std::string, std::vector<char>> serializeTextWithEntities(not_null<His
 
 MTPVector<MTPMessageEntity> deserializeTextWithEntities(std::vector<char> serialized) {
 	return deserializeObject<MTPVector<MTPMessageEntity>>(serialized);
+}
+
+std::vector<char> serializeDocumentAttributes(
+		not_null<DocumentData*> document) {
+	return serializeObject(Api::ComposeDocumentAttributes(document));
+}
+
+MTPVector<MTPDocumentAttribute> deserializeDocumentAttributes(
+		std::vector<char> serialized) {
+	return deserializeObject<MTPVector<MTPDocumentAttribute>>(serialized);
 }
 
 int mapItemFlagsToMTPFlags(not_null<HistoryItem*> item) {

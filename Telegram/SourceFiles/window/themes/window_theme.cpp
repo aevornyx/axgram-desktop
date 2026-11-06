@@ -6,6 +6,8 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/themes/window_theme.h"
+#include "ax/ui/appearance/glass_accent.h"
+#include "ax/ui/appearance/glass_accent_settings.h"
 
 #include "window/themes/window_theme_preview.h"
 #include "window/themes/window_themes_chat.h"
@@ -279,7 +281,8 @@ bool LoadTheme(
 		const style::colorizer &colorizer,
 		const std::optional<QByteArray> &editedPalette,
 		Cached *cache = nullptr,
-		Instance *out = nullptr) {
+		Instance *out = nullptr,
+		bool glass = false) {
 	if (content.size() < 4) {
 		LOG(("Theme Error: Bad theme content size: %1").arg(content.size()));
 		return false;
@@ -366,6 +369,17 @@ bool LoadTheme(
 	if (out) {
 		out->palette.finalize(paletteColorizer);
 	}
+	if (glass) {
+		const auto selected = AxGlass::SavedAccent();
+		if (out) {
+			AxGlass::TintPalette(out->palette, selected, out->palette.windowBg()->c.lightnessF() < .5);
+		} else {
+			auto palette = style::palette();
+			palette = *style::main_palette::get();
+			AxGlass::TintPalette(palette, selected, palette.windowBg()->c.lightnessF() < .5);
+			style::main_palette::apply(palette);
+		}
+	}
 	if (cache) {
 		if (out) {
 			cache->colors = out->palette.save();
@@ -426,7 +440,8 @@ bool InitializeFromSaved(Saved &&saved) {
 
 	const auto editing = ReadEditingPalette();
 	GlobalBackground.createIfNull();
-	if (!editing && InitializeFromCache(saved.object.content, saved.cache)) {
+	const auto glass = AxGlass::IsGlassTheme(saved.object.pathAbsolute);
+	if (!editing && !glass && InitializeFromCache(saved.object.content, saved.cache)) {
 		return true;
 	}
 
@@ -445,7 +460,7 @@ bool InitializeFromSaved(Saved &&saved) {
 	}
 
 	const auto colorizer = ColorizerForTheme(saved.object.pathAbsolute);
-	if (!LoadTheme(saved.object.content, colorizer, editing, &saved.cache)) {
+	if (!LoadTheme(saved.object.content, colorizer, editing, &saved.cache, nullptr, glass)) {
 		DEBUG_LOG(("Theme: Could not load from saved."));
 		return false;
 	}
@@ -1497,7 +1512,7 @@ bool LoadFromFile(
 	if (outContent) {
 		*outContent = content;
 	}
-	return LoadTheme(content, colorizer, std::nullopt, outCache, out);
+	return LoadTheme(content, colorizer, std::nullopt, outCache, out, AxGlass::IsGlassTheme(path));
 }
 
 bool LoadFromContent(

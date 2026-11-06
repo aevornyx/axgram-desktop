@@ -90,6 +90,9 @@ not_null<FilterChatsPreview*> SetupChatsPreview(
 		content,
 		rules.flags() & flags,
 		(rules.*peers)()));
+	data->value() | rpl::on_next([=](const Data::ChatFilter &current) {
+		preview->updateData(current.flags() & flags, (current.*peers)());
+	}, preview->lifetime());
 
 	preview->flagRemoved(
 	) | rpl::on_next([=](Flag flag) {
@@ -183,13 +186,16 @@ void EditExceptions(
 				const auto contains = changed.contains(history);
 				return include ? !contains : contains;
 			}), end(pinned));
+			auto flags = (rules.flags() & ~options) | rawController->chosenOptions();
+			if (rawController->chosenOptions() & Flag::NoArchived) {
+				flags &= ~Flag::OnlyArchived;
+			}
 			auto computed = Data::ChatFilter(
 				rules.id(),
 				rules.title(),
 				rules.iconEmoji(),
 				rules.colorIndex(),
-				((rules.flags() & ~options)
-					| rawController->chosenOptions()),
+				flags,
 				include ? std::move(changed) : std::move(removeFrom),
 				std::move(pinned),
 				include ? std::move(removeFrom) : std::move(changed));
@@ -738,6 +744,33 @@ void EditFilterBox(
 	constexpr auto kExcludeTypes = Flag::NoMuted
 		| Flag::NoArchived
 		| Flag::NoRead;
+	if (filter.id() >= 1000) {
+		const auto onlyArchived = AddButtonWithIcon(
+			content,
+			rpl::single(u"Только чаты из архива"_q),
+			st::settingsButtonNoIcon);
+		onlyArchived->toggleOn(data->value() | rpl::map([](const auto &rules) {
+			return bool(rules.flags() & Flag::OnlyArchived);
+		}));
+		onlyArchived->toggledChanges() | rpl::on_next([=](bool enabled) {
+			const auto rules = data->current();
+			if (enabled == bool(rules.flags() & Flag::OnlyArchived)) {
+				return;
+			}
+			const auto flags = enabled
+				? (rules.flags() | Flag::OnlyArchived) & ~Flag::NoArchived
+				: rules.flags() & ~Flag::OnlyArchived;
+			*data = Data::ChatFilter(
+				rules.id(),
+				rules.title(),
+				rules.iconEmoji(),
+				rules.colorIndex(),
+				flags,
+				rules.always(),
+				rules.pinned(),
+				rules.never());
+		}, onlyArchived->lifetime());
+	}
 
 	box->setFocusCallback([=] {
 		name->setFocusFast();
@@ -1149,8 +1182,20 @@ void EditExistingFilter(
 	if (i == end(list)) {
 		return;
 	}
+	const auto baseline = *i;
+	const auto replica = session->data().chatsFilters().localReplica();
+	const auto uuid = replica ? replica->ids.key(id) : QString();
 	const auto doneCallback = [=](const Data::ChatFilter &result) {
 		Expects(id == result.id());
+		if (id >= 1000) {
+			const auto filters = &session->data().chatsFilters();
+			if (const auto rebased = filters->rebaseLocalEdit(uuid, baseline, result)) {
+				filters->set(*rebased);
+			} else {
+				window->showToast(u"Папка удалена или её изменения не удалось сохранить. Откройте актуальный список папок."_q);
+			}
+			return;
+		}
 
 		const auto tl = result.tl();
 		session->data().chatsFilters().apply(MTP_updateDialogFilter(

@@ -566,7 +566,7 @@ void GroupInfoBox::prepare() {
 	_photo->showCustomOnChosen();
 	_title.create(
 		this,
-		st::defaultInputField,
+		st::newGroupTitle,
 		(_type == Type::Channel
 			? tr::lng_dlg_new_channel_name
 			: tr::lng_dlg_new_group_name)(),

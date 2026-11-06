@@ -1354,6 +1354,17 @@ void Settings::writePrefImpl<bool>(std::string_view key, bool value) {
 	writePrefGeneric(key, value ? "\x1"_q : QByteArray());
 }
 
+template <>
+std::optional<QString> Settings::readPrefImpl<QString>(std::string_view key) {
+	const auto data = readPrefGeneric(key);
+	return data ? std::make_optional(QString::fromUtf8(*data)) : std::nullopt;
+}
+
+template <>
+void Settings::writePrefImpl<QString>(std::string_view key, QString value) {
+	writePrefGeneric(key, value.toUtf8());
+}
+
 QString Settings::getSoundPath(const QString &key) const {
 	auto it = _soundOverrides.find(key);
 	if (it != _soundOverrides.end()) {

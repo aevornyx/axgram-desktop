@@ -21,6 +21,24 @@ class Show;
 
 namespace UrlAuthBox {
 
+struct ServiceCallbacks {
+	QString clientId;
+	QString origin;
+	qint64 account = 0;
+	Fn<bool()> active;
+	Fn<void(QString)> accepted;
+	Fn<void()> cancelled;
+	Fn<void()> failed;
+	Fn<void(Fn<void()>)> bindClose;
+	Fn<void()> expired;
+};
+
+void ActivateService(
+	std::shared_ptr<Ui::Show> show,
+	not_null<Main::Session*> session,
+	const QString &url,
+	std::shared_ptr<ServiceCallbacks> callbacks);
+
 void ActivateButton(
 	std::shared_ptr<Ui::Show> show,
 	not_null<const HistoryItem*> message,

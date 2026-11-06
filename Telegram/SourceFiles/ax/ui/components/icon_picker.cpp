@@ -56,8 +56,9 @@ void applyIcon() {
 
 } // namespace
 
-IconPicker::IconPicker(QWidget *parent)
-	: RpWidget(parent) {
+IconPicker::IconPicker(QWidget *parent, Fn<void()> onChanged)
+	: RpWidget(parent)
+	, _onChanged(std::move(onChanged)) {
 	widthValue() | rpl::on_next([=](int w) {
 		const auto cell = w / kColumns;
 		const auto iconSize = st::iconPickerIconSize;
@@ -181,5 +182,8 @@ void IconPicker::mousePressEvent(QMouseEvent *e) {
 		applyIcon();
 
 		repaint();
+		if (_onChanged) {
+			_onChanged();
+		}
 	}
 }

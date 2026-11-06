@@ -9,6 +9,7 @@
 #include "history/history_item.h"
 #include "api/api_text_entities.h"
 #include "ax/data/entities.h"
+#include "ax/data/media_storage.h"
 #include "ax/ui/message_history/history_inner.h"
 #include "ax/utils/ax_mapper.h"
 #include "base/unixtime.h"
@@ -31,17 +32,19 @@ OwnedItem::OwnedItem(std::nullptr_t) {
 
 OwnedItem::OwnedItem(
 	not_null<HistoryView::ElementDelegate*> delegate,
-	not_null<HistoryItem*> data)
-	: _data(data), _view(_data->createView(delegate)) {
+	not_null<HistoryItem*> data,
+	AxMessageBase archive)
+	: _data(data), _view(_data->createView(delegate)), _archive(std::move(archive)) {
 }
 
 OwnedItem::OwnedItem(OwnedItem &&other)
-	: _data(base::take(other._data)), _view(base::take(other._view)) {
+	: _data(base::take(other._data)), _view(base::take(other._view)), _archive(std::move(other._archive)) {
 }
 
 OwnedItem &OwnedItem::operator=(OwnedItem &&other) {
 	_data = base::take(other._data);
 	_view = base::take(other._view);
+	_archive = std::move(other._archive);
 	return *this;
 }
 
@@ -54,7 +57,8 @@ OwnedItem::~OwnedItem() {
 
 void OwnedItem::refreshView(
 	not_null<HistoryView::ElementDelegate*> delegate) {
-	_view = _data->createView(delegate);
+	const auto previous = std::move(_view);
+	_view = _data->createView(delegate, previous.get());
 }
 
 void OwnedItem::clearView() {
@@ -79,7 +83,7 @@ void GenerateItems(
 		TimeId sentDate = 0,
 		MsgId realId = MsgId())
 	{
-		return callback(OwnedItem(delegate, item), sentDate, realId);
+		return callback(OwnedItem(delegate, item, message), sentDate, realId);
 	};
 
 	const auto makeSimpleTextMessage = [&](TextWithEntities &&text)
@@ -94,24 +98,32 @@ void GenerateItems(
 			flags |= MessageFlag::HasPostAuthor;
 		}
 
-		return history->makeMessage({
-										.id = history->nextNonHistoryEntryId(),
-										.flags = flags,
-										.from = from ? from->id : 0,
-										.date = date,
-										.postAuthor = !message.postAuthor.empty()
-														  ? QString::fromStdString(message.postAuthor)
-														  : from
-																? QString()
-																: QString("unknown user: %1").arg(message.fromId),
-									},
-									std::move(text),
-									MTP_messageMediaEmpty());
+		auto fields = HistoryItemCommonFields{
+			.id = history->nextNonHistoryEntryId(),
+			.flags = flags,
+			.from = from ? from->id : 0,
+			.date = date,
+			.postAuthor = !message.postAuthor.empty()
+				? QString::fromStdString(message.postAuthor)
+				: from
+					? QString()
+					: u"unknown user: %1"_q.arg(message.fromId),
+		};
+		const auto media = AxMedia::Restore(&history->session(), message);
+		if (media.document) {
+			return history->makeMessage(std::move(fields),
+				not_null<DocumentData*>(media.document), text);
+		} else if (media.photo) {
+			return history->makeMessage(std::move(fields),
+				not_null<PhotoData*>(media.photo), text);
+		}
+		return history->makeMessage(std::move(fields),
+			std::move(text), MTP_messageMediaEmpty());
 	};
 
 	const auto addSimpleTextMessage = [&](TextWithEntities &&text)
 	{
-		addPart(makeSimpleTextMessage(std::move(text)));
+		addPart(makeSimpleTextMessage(std::move(text)), message.date);
 	};
 
 	const auto text = QString::fromStdString(message.text);

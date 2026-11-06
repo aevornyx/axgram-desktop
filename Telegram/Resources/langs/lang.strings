@@ -9031,3 +9031,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ax_PeekOnlineFailed" = "Couldn't peek online";
 "ax_ConfirmationRound" = "Do you want to send this round video?";
 "ax_UpdateAxGram" = "Update AxGram";
+"ax_GlassFolders" = "Standard Telegram interface";
+
+"ax_ArchiveProtectionFailed" = "AxGram could not open or protect the local archive. Existing files were kept. Deleted messages and edit history are unavailable. Restart the app; if the problem continues, restore the archive together with its device key from your backup. Do not delete the database or key file.";

@@ -43,6 +43,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AxGram includes
 #include "ax/ax_settings.h"
+#include "ax/features/folders/folder_access.h"
 
 
 namespace Ui {
@@ -152,10 +153,7 @@ void ShowFiltersListMenu(
 		parent,
 		st::popupMenuWithIcons);
 
-	const auto reorderAll = session->user()->isPremium();
-	const auto maxLimit = (reorderAll ? 1 : 0)
-		+ Data::PremiumLimits(session).dialogFiltersCurrent();
-	const auto premiumFrom = (reorderAll ? 0 : 1) + maxLimit;
+	const auto serverLimit = Data::PremiumLimits(session).dialogFiltersCurrent();
 
 	for (auto i = 0; i < list.size(); ++i) {
 		const auto title = list[i].title();
@@ -180,7 +178,8 @@ void ShowFiltersListMenu(
 			action,
 			icon,
 			icon);
-		action->setEnabled(i < premiumFrom);
+		action->setEnabled(!AxFolders::IsPremiumLocked(
+			list, list[i].id(), serverLimit));
 		if (!title.text.empty()) {
 			const auto context = Core::TextContext({
 				.session = session,
@@ -417,33 +416,36 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				? ComputeFilterIcon(filter)
 				: FilterIcon::All).tabs.get();
 		}) | ranges::to_vector);
+		const auto refreshLocks = [&] {
+			const auto serverLimit = Data::PremiumLimits(session).dialogFiltersCurrent();
+			auto locked = std::vector<int>();
+			for (auto i = 0; i != list.size(); ++i) {
+				if (AxFolders::IsPremiumLocked(list, list[i].id(), serverLimit)) {
+					locked.push_back(i);
+				}
+			}
+			slider->setLockedSections(std::move(locked));
+			if (state->reorder) {
+				state->reorder->cancel();
+				state->reorder->clearPinnedIntervals();
+				for (auto i = 0; i != list.size(); ++i) {
+					if (slider->isSectionLocked(i)
+						|| (!list[i].id() && !session->user()->isPremium())) {
+						state->reorder->addPinnedInterval(i, 1);
+					}
+				}
+			}
+		};
 		if (!sectionsChanged) {
+			refreshLocks();
 			return;
 		}
 		state->rebuildLifetime.destroy();
 		slider->fitWidthToSections();
-		{
-			const auto reorderAll = session->user()->isPremium();
-			const auto maxLimit = (reorderAll ? 1 : 0)
-				+ Data::PremiumLimits(session).dialogFiltersCurrent();
-			const auto premiumFrom = (reorderAll ? 0 : 1) + maxLimit;
-			slider->setLockedFrom((premiumFrom >= list.size())
-				? 0
-				: premiumFrom);
-			slider->lockedClicked() | rpl::on_next([=] {
-				controller->show(Box(FiltersLimitBox, session, std::nullopt));
-			}, state->rebuildLifetime);
-			if (state->reorder) {
-				state->reorder->cancel();
-				state->reorder->clearPinnedIntervals();
-				if (!reorderAll) {
-					state->reorder->addPinnedInterval(0, 1);
-				}
-				state->reorder->addPinnedInterval(
-					premiumFrom,
-					std::max(1, int(list.size()) - maxLimit));
-			}
-		}
+		refreshLocks();
+		slider->lockedClicked() | rpl::on_next([=] {
+			controller->show(Box(FiltersLimitBox, session, std::nullopt));
+		}, state->rebuildLifetime);
 		if (trackActiveFilterAndUnreadAndReorder) {
 			reassignUnreadValue();
 		}
@@ -563,15 +565,18 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					|| (request.action == Qt::Key_Backtab));
 		}) | rpl::on_next([=](const Shortcuts::ChatSwitchRequest &request) {
 			const auto count = slider->sectionsCount();
-			const auto locked = slider->lockedFrom();
-			const auto limit = locked ? locked : count;
-			if (limit <= 1) {
+			if (count <= 1) {
 				return;
 			}
 			const auto back = (request.action == Qt::Key_Backtab);
-			const auto current = std::min(slider->activeSection(), limit - 1);
-			const auto next = (current + (back ? -1 : 1) + limit) % limit;
-			slider->setActiveSection(next);
+			auto next = slider->activeSection();
+			for (auto step = 0; step != count; ++step) {
+				next = (next + (back ? -1 : 1) + count) % count;
+				if (!slider->isSectionLocked(next)) {
+					slider->setActiveSection(next);
+					break;
+				}
+			}
 		}, wrap->lifetime());
 	}
 

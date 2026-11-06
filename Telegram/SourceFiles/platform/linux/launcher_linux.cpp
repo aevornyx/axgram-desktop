@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "webview/platform/linux/webview_linux_webkitgtk.h"
 
+#include <QtCore/QProcess>
 #include <QtWidgets/QApplication>
 #include <ksandbox.h>
 #include <glib/glib.hpp>
@@ -60,12 +61,15 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 		argumentsList.push_back("--latest-version");
 		argumentsList.push_back((cExeDir() + cExeName()).toStdString());
 	} else if (justRelaunch) {
-		// What we are launching.
-		const auto launching = (cExeDir() + cExeName());
+		// The mounted AppImage directory disappears when the original process exits.
+		const auto appImage = qEnvironmentVariable("APPIMAGE");
+		const auto launching = appImage.isEmpty()
+			? (cExeDir() + cExeName())
+			: appImage;
 		argumentsList.push_back(launching.toStdString());
 		// argv[0] that is passed to what we are launching.
 		// It should be added explicitly in case of FILE_AND_ARGV_ZERO_.
-		const auto argv0 = !arguments().isEmpty()
+		const auto argv0 = appImage.isEmpty() && !arguments().isEmpty()
 			? arguments().first()
 			: launching;
 		argumentsList.push_back(argv0.toStdString());
@@ -119,6 +123,23 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 
 	Logs::closeMain();
 	CrashReports::Finish();
+
+	if (justRelaunch
+		&& !qEnvironmentVariableIsEmpty("APPIMAGE")
+		&& qEnvironmentVariableIsSet("AXGRAM_APPIMAGE_ICON_RESTART")) {
+		qunsetenv("AXGRAM_APPIMAGE_ICON_RESTART");
+		// Give the desktop time to drop the old window and reload its launcher.
+		auto command = QStringList{
+			u"-c"_q,
+			u"sleep 5; exec \"$@\""_q,
+			u"axgram-icon-restart"_q,
+			QString::fromStdString(argumentsList[0]),
+		};
+		for (auto i = size_t(2); i != argumentsList.size(); ++i) {
+			command.push_back(QString::fromStdString(argumentsList[i]));
+		}
+		return QProcess::startDetached(u"/bin/sh"_q, command, cWorkingDir());
+	}
 
 	int waitStatus = 0;
 	if (justRelaunch) {

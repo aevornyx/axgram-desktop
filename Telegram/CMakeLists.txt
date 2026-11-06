@@ -7,6 +7,11 @@
 add_executable(Telegram WIN32 MACOSX_BUNDLE)
 init_non_host_target(Telegram)
 
+option(AXGRAM_ENCRYPT_ARCHIVE_DATABASE "Enable experimental local archive database encryption" OFF)
+if (AXGRAM_ENCRYPT_ARCHIVE_DATABASE)
+    target_compile_definitions(Telegram PRIVATE AXGRAM_ENCRYPT_ARCHIVE_DATABASE)
+endif()
+
 add_subdirectory(lib_rpl)
 add_subdirectory(lib_crl)
 add_subdirectory(lib_base)
@@ -27,6 +32,16 @@ add_subdirectory(lib_icu)
 
 get_filename_component(src_loc SourceFiles REALPATH)
 get_filename_component(res_loc Resources REALPATH)
+
+set_source_files_properties(${src_loc}/ax/libs/sqlite/sqlite3.c PROPERTIES
+    COMPILE_DEFINITIONS "SQLITE_HAS_CODEC;SQLITE_TEMP_STORE=2;SQLITE_THREADSAFE=1;SQLITE_EXTRA_INIT=sqlcipher_extra_init;SQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown;SQLCIPHER_CRYPTO_OPENSSL"
+)
+set_source_files_properties(
+    ${src_loc}/ax/data/archive_database.cpp
+    ${src_loc}/ax/data/ax_database.cpp
+    PROPERTIES COMPILE_DEFINITIONS SQLITE_HAS_CODEC
+)
+
 
 include(cmake/telegram_options.cmake)
 include(cmake/lib_ffmpeg.cmake)
@@ -108,6 +123,14 @@ set(axgram_files
         ax/ax_url_handlers.h
         ax/ax_state.cpp
         ax/ax_state.h
+        ax/ui/appearance/glass_accent.cpp
+        ax/ui/appearance/glass_accent.h
+        ax/ui/appearance/glass_accent_settings.cpp
+        ax/ui/appearance/glass_accent_settings.h
+        ax/ui/appearance/glass_controls.cpp
+        ax/ui/appearance/glass_controls.h
+        ax/ui/appearance/glass_rail.cpp
+        ax/ui/appearance/glass_rail.h
         ax/ax_settings.cpp
         ax/ax_settings.h
         ax/ax_lang.cpp
@@ -217,6 +240,28 @@ set(axgram_files
         ax/features/forward/ax_forward.h
         ax/features/forward/ax_forward_rich.cpp
         ax/features/forward/ax_forward_rich.h
+        ax/features/folders/folder_document.cpp
+        ax/features/folders/folder_auth.cpp
+        ax/features/folders/folder_auth.h
+        ax/features/folders/folder_connection.cpp
+        ax/features/folders/folder_connection.h
+        ax/features/folders/folder_document.h
+        ax/features/folders/folder_envelope.cpp
+        ax/features/folders/folder_envelope.h
+        ax/features/folders/folder_exchange.cpp
+        ax/features/folders/folder_exchange.h
+        ax/features/folders/folder_filter_codec.cpp
+        ax/features/folders/folder_filter_codec.h
+        ax/features/folders/folder_archive_rules.h
+        ax/features/folders/folder_access.h
+        ax/features/folders/folder_http.cpp
+        ax/features/folders/folder_http.h
+        ax/features/folders/folder_login_store.cpp
+        ax/features/folders/folder_login_store.h
+        ax/features/folders/folder_replica.cpp
+        ax/features/folders/folder_replica.h
+        ax/features/folders/folder_runtime.cpp
+        ax/features/folders/folder_runtime.h
         ax/features/forward/ax_sync.cpp
         ax/features/forward/ax_sync.h
         ax/features/translator/ax_translator.cpp
@@ -239,7 +284,15 @@ set(axgram_files
         ax/features/filters/filters_utils.h
         ax/data/messages_storage.cpp
         ax/data/messages_storage.h
+        ax/data/media_storage.cpp
+        ax/data/media_storage.h
+        ax/data/media_file.cpp
+        ax/data/media_file.h
         ax/data/entities.h
+        ax/data/archive_database.cpp
+        ax/data/archive_database.h
+        ax/data/archive_key_store.cpp
+        ax/data/archive_key_store.h
         ax/data/ax_database.cpp
         ax/data/ax_database.h
         ax/ax_promo.cpp
@@ -2712,4 +2765,32 @@ if (LINUX AND DESKTOP_APP_USE_PACKAGED)
     install(FILES "../lib/xdg/com.axgram.desktop.desktop" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.axgram.desktop.service" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/dbus-1/services")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.axgram.desktop.metainfo.xml" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
+endif()
+
+option(AXGRAM_BUILD_DESIGN_TESTS "Build isolated offscreen design regressions" OFF)
+if (AXGRAM_BUILD_DESIGN_TESTS)
+    add_executable(axgram_design_ui_test
+        Tests/axgram_design_ui_test.cpp
+        SourceFiles/ax/ui/appearance/glass_accent.cpp
+        lib_lottie/lottie/lottie_icon.cpp
+        lib_lottie/lottie/lottie_common.cpp
+        lib_lottie/lottie/lottie_toast_icon.cpp
+    )
+    target_include_directories(axgram_design_ui_test PRIVATE lib_lottie SourceFiles)
+    target_compile_definitions(axgram_design_ui_test PRIVATE LOT_BUILD)
+    init_non_host_target(axgram_design_ui_test)
+    target_compile_features(axgram_design_ui_test PRIVATE cxx_std_20)
+    target_link_libraries(axgram_design_ui_test PRIVATE
+        desktop-app::lib_ui
+        desktop-app::external_rlottie
+        desktop-app::external_qt
+    )
+    if (WIN32 AND QT_VERSION_MAJOR EQUAL 5 AND NOT DESKTOP_APP_USE_PACKAGED)
+        target_link_libraries(axgram_design_ui_test PRIVATE
+            "${qt_loc}/plugins/platforms/qoffscreen$<$<CONFIG:Debug>:d>.lib"
+        )
+        target_compile_definitions(axgram_design_ui_test PRIVATE AXGRAM_TEST_STATIC_OFFSCREEN)
+    else()
+        message(FATAL_ERROR "Design tests require the bundled Windows Qt5 offscreen plugin.")
+    endif()
 endif()

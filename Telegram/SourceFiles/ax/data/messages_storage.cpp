@@ -1,4 +1,4 @@
-﻿// Часть AxGram для Desktop. Файл изменён.
+// Часть AxGram для Desktop. Файл изменён.
 //
 // Основано на исходном коде AyuGram for Desktop.
 // Copyright @Radolyn, 2026
@@ -7,6 +7,7 @@
 #include "ax/data/messages_storage.h"
 
 #include "ax/data/ax_database.h"
+#include "ax/data/media_storage.h"
 #include "ax/utils/ax_mapper.h"
 #include "ax/utils/telegram_helpers.h"
 #include "base/unixtime.h"
@@ -74,25 +75,20 @@ void map(not_null<HistoryItem*> item, AxMessageBase &message) {
 	message.text = serializedText.first;
 	message.textEntities = serializedText.second;
 
-	// todo: implement mapping
-	message.mediaPath = "/";
-	// message.hqThumbPath
-	message.documentType = 0; // document type none
-	// message.documentSerialized
-	// message.thumbsSerialized
-	// message.documentAttributesSerialized
-	// message.mimeType
+	AxMedia::Capture(item, message);
 }
 
 void addEditedMessage(not_null<HistoryItem *> item) {
 	EditedMessage message;
 	map(item, message);
 
-	if (message.text.empty()) {
+	if (message.text.empty() && message.documentSerialized.empty()) {
 		return;
 	}
 
-	AxDatabase::addEditedMessage(message);
+	if (!AxDatabase::addEditedMessage(message)) {
+		AxMedia::Remove(message.userId, message.mediaPath);
+	}
 }
 
 std::vector<AxMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit) {
@@ -115,11 +111,13 @@ void addDeletedMessage(not_null<HistoryItem*> item) {
 	DeletedMessage message;
 	map(item, message);
 
-	if (message.text.empty()) {
+	if (message.text.empty() && message.documentSerialized.empty()) {
 		return;
 	}
 
-	AxDatabase::addDeletedMessage(message);
+	if (!AxDatabase::addDeletedMessage(message)) {
+		AxMedia::Remove(message.userId, message.mediaPath);
+	}
 }
 
 std::vector<AxMessageBase>
@@ -137,12 +135,16 @@ bool hasDeletedMessages(not_null<PeerData*> peer, ID topicId) {
 void removeDeletedMessage(not_null<HistoryItem*> item) {
 	const auto peer = item->history()->peer;
 	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
-	AxDatabase::removeDeletedMessage(userId, getDialogIdFromPeer(peer), item->id.bare);
+	for (const auto &path : AxDatabase::removeDeletedMessage(userId, getDialogIdFromPeer(peer), item->id.bare)) {
+		AxMedia::Remove(userId, path);
+	}
 }
 
 void clearDeletedMessages(not_null<PeerData*> peer, ID topicId) {
 	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
-	AxDatabase::clearDeletedMessages(userId, getDialogIdFromPeer(peer), topicId);
+	for (const auto &path : AxDatabase::clearDeletedMessages(userId, getDialogIdFromPeer(peer), topicId)) {
+		AxMedia::Remove(userId, path);
+	}
 }
 
 }

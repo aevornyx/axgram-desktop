@@ -77,6 +77,11 @@ MTPVector<MTPDocumentAttribute> ComposeSendingDocumentAttributes(
 
 } // namespace
 
+MTPVector<MTPDocumentAttribute> ComposeDocumentAttributes(
+		not_null<DocumentData*> document) {
+	return ComposeSendingDocumentAttributes(document);
+}
+
 MTPInputMedia PrepareUploadedPhoto(
 		not_null<HistoryItem*> item,
 		RemoteFileInfo info) {

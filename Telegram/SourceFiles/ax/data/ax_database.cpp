@@ -1,17 +1,32 @@
-// Часть AxGram для Desktop. Файл изменён.
+// Р§Р°СЃС‚СЊ AxGram РґР»СЏ Desktop. Р¤Р°Р№Р» РёР·РјРµРЅС‘РЅ.
 //
-// Основано на исходном коде AyuGram for Desktop.
+// РћСЃРЅРѕРІР°РЅРѕ РЅР° РёСЃС…РѕРґРЅРѕРј РєРѕРґРµ AyuGram for Desktop.
 // Copyright @Radolyn, 2026
 //
-// Распространяется по GNU GPL v3 — см. LICENSE и NOTICE.md.
+// Р Р°СЃРїСЂРѕСЃС‚СЂР°РЅСЏРµС‚СЃСЏ РїРѕ GNU GPL v3 вЂ” СЃРј. LICENSE Рё NOTICE.md.
 #include "ax/data/ax_database.h"
 
 #include "ax/data/entities.h"
 #include "ax/libs/sqlite/sqlite_orm.h"
-#include "base/unixtime.h"
+#include "ax/data/archive_database.h"
+#include "ax/data/archive_key_store.h"
+
+#include <openssl/crypto.h>
+#include <atomic>
+#include <mutex>
+#include <fstream>
+#include <stdexcept>
 
 using namespace sqlite_orm;
-auto storage = make_storage(
+
+namespace {
+
+std::unique_ptr<AxArchive::DeviceKey> ArchiveKey;
+std::atomic<bool> ArchiveReady = false;
+std::recursive_mutex ArchiveDatabaseMutex;
+
+auto CreateStorage() {
+	return make_storage(
 	"./tdata/axdata.db",
 	make_table<SchemaVersion>(
 		"SchemaVersion",
@@ -142,26 +157,43 @@ auto storage = make_storage(
 		make_column("messageId", &SpyMessageContentsRead::messageId),
 		make_column("entityCreateDate", &SpyMessageContentsRead::entityCreateDate)
 	)
-);
+	);
+}
+
+using ArchiveStorage = decltype(CreateStorage());
+
+ArchiveStorage &ArchiveDatabaseStorage() {
+	static auto result = [] {
+		if (OPENSSL_init_crypto(0, nullptr) != 1
+			|| sqlite3_initialize() != SQLITE_OK) {
+			throw std::runtime_error("Archive crypto initialization failed");
+		}
+		return CreateStorage();
+	}();
+	return result;
+}
+
+}
 
 namespace AxMigrations {
 
-void migrateToV1(decltype(storage) &storage) {
+void migrateToV1(ArchiveStorage &storage) {
 	// drop RegexFilter table as we've added primary_key()
 	try {
 		storage.drop_table_if_exists("RegexFilter");
 		LOG(("Migration to V1 successful."));
 	} catch (const std::exception &ex) {
 		LOG(("Migration to V1 failed: %1").arg(ex.what()));
+		throw;
 	}
 }
 
 }
 
-void runMigrations(decltype(storage) &storage) {
+void runMigrations(ArchiveStorage &storage) {
 	constexpr int kLatestVersion = 1;
 
-	const std::map<int, Fn<void(decltype(storage) &)>> migrations = {
+	const std::map<int, Fn<void(ArchiveStorage &)>> migrations = {
 		{1, AxMigrations::migrateToV1},
 	};
 
@@ -198,9 +230,7 @@ void runMigrations(decltype(storage) &storage) {
 			} catch (...) {
 				storage.rollback();
 				LOG(("Failed to apply migration for version: %1.").arg(v));
-				AxDatabase::moveCurrentDatabase();
-
-				return;
+				throw;
 			}
 		}
 	}
@@ -208,74 +238,119 @@ void runMigrations(decltype(storage) &storage) {
 
 namespace AxDatabase {
 
-void moveCurrentDatabase() {
-	const auto time = base::unixtime::now();
-
-	if (QFile::exists("./tdata/axdata.db")) {
-		QFile::rename("./tdata/axdata.db", QString("./tdata/axdata_%1.db").arg(time));
-	}
-
-	if (QFile::exists("./tdata/axdata.db-shm")) {
-		QFile::rename("./tdata/axdata.db-shm", QString("./tdata/axdata_%1.db-shm").arg(time));
-	}
-
-	if (QFile::exists("./tdata/axdata.db-wal")) {
-		QFile::rename("./tdata/axdata.db-wal", QString("./tdata/axdata_%1.db-wal").arg(time));
-	}
-}
-
 void migrateLegacyDatabase() {
-	// AxGram: база называлась ayudata.db по исходному проекту. Переносим её
-	// один раз, иначе накопленные удалённые сообщения остались бы в файле,
-	// который приложение больше не открывает.
+	// AxGram: Р±Р°Р·Р° РЅР°Р·С‹РІР°Р»Р°СЃСЊ ayudata.db РїРѕ РёСЃС…РѕРґРЅРѕРјСѓ РїСЂРѕРµРєС‚Сѓ. РџРµСЂРµРЅРѕСЃРёРј РµС‘
+	// РѕРґРёРЅ СЂР°Р·, РёРЅР°С‡Рµ РЅР°РєРѕРїР»РµРЅРЅС‹Рµ СѓРґР°Р»С‘РЅРЅС‹Рµ СЃРѕРѕР±С‰РµРЅРёСЏ РѕСЃС‚Р°Р»РёСЃСЊ Р±С‹ РІ С„Р°Р№Р»Рµ,
+	// РєРѕС‚РѕСЂС‹Р№ РїСЂРёР»РѕР¶РµРЅРёРµ Р±РѕР»СЊС€Рµ РЅРµ РѕС‚РєСЂС‹РІР°РµС‚.
 	if (QFile::exists("./tdata/axdata.db")) {
 		return;
 	}
 	if (!QFile::exists("./tdata/ayudata.db")) {
 		return;
 	}
-	LOG(("Database: migrating ayudata.db to axdata.db"));
-	QFile::rename("./tdata/ayudata.db", "./tdata/axdata.db");
-	QFile::rename("./tdata/ayudata.db-shm", "./tdata/axdata.db-shm");
-	QFile::rename("./tdata/ayudata.db-wal", "./tdata/axdata.db-wal");
-}
-
-void initialize() {
-	migrateLegacyDatabase();
-
-	try {
-		storage.sync_schema(true);
-
-		runMigrations(storage);
-
-		storage.sync_schema(true);
-	} catch (const std::exception &ex) {
-		LOG(("Database initialization failed: %1").arg(ex.what()));
-		moveCurrentDatabase();
-
-		storage.sync_schema(true);
-		if (!storage.get_pointer<SchemaVersion>(1)) {
-			storage.insert(SchemaVersion{1, 0});
-		}
+	auto raw = static_cast<sqlite3*>(nullptr);
+	const auto opened = sqlite3_open_v2("./tdata/ayudata.db", &raw,
+		SQLITE_OPEN_READWRITE, nullptr);
+	auto journal = static_cast<sqlite3_stmt*>(nullptr);
+	const auto prepared = (opened == SQLITE_OK)
+		? sqlite3_prepare_v2(raw, "PRAGMA journal_mode=DELETE", -1, &journal, nullptr)
+		: SQLITE_ERROR;
+	const auto consolidated = prepared == SQLITE_OK
+		&& sqlite3_step(journal) == SQLITE_ROW
+		&& std::string(reinterpret_cast<const char*>(sqlite3_column_text(journal, 0))) == "delete";
+	sqlite3_finalize(journal);
+	sqlite3_close(raw);
+	if (!consolidated || !QFile::rename("./tdata/ayudata.db", "./tdata/axdata.db")) {
+		throw std::runtime_error("Legacy archive could not be moved safely");
 	}
 }
 
-void addEditedMessage(const EditedMessage &message) {
+bool available() {
+	return ArchiveReady.load();
+}
+
+void initialize() {
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
+	if (ArchiveReady.load()) return;
 	try {
-		storage.begin_transaction();
-		storage.insert(message);
-		storage.commit();
+		migrateLegacyDatabase();
+#if defined(Q_OS_WIN) && defined(AXGRAM_ENCRYPT_ARCHIVE_DATABASE)
+		const auto path = std::filesystem::path("./tdata/axdata.db");
+		const auto kind = AxArchive::InspectDatabase(path);
+		const auto allowCreate = kind == AxArchive::DatabaseKind::Missing
+			|| kind == AxArchive::DatabaseKind::Plain;
+		if (kind == AxArchive::DatabaseKind::Invalid) {
+			throw std::runtime_error("Archive files require recovery");
+		}
+		auto error = AxArchive::KeyError::None;
+		ArchiveKey = AxArchive::LoadDeviceKey("./tdata/axarchive.key", allowCreate, error);
+		if (!ArchiveKey) throw std::runtime_error("Archive device key unavailable");
+		const auto protectedDatabase = AxArchive::ProtectDatabase(path, ArchiveKey->bytes());
+		if (protectedDatabase != AxArchive::ProtectError::None
+			&& protectedDatabase != AxArchive::ProtectError::Missing) {
+			throw std::runtime_error("Archive encryption or verification failed");
+		}
+		ArchiveDatabaseStorage().on_open = [](sqlite3 *db) {
+			if (!ArchiveKey || sqlite3_key(db, ArchiveKey->bytes().data(), 32) != SQLITE_OK
+				|| sqlite3_exec(db, "SELECT count(*) FROM sqlite_master", nullptr, nullptr, nullptr) != SQLITE_OK) {
+				throw std::runtime_error("Archive key rejected");
+			}
+		};
+#endif
+		ArchiveDatabaseStorage().open_forever();
+		ArchiveDatabaseStorage().sync_schema(true);
+		runMigrations(ArchiveDatabaseStorage());
+		ArchiveDatabaseStorage().sync_schema(true);
+		ArchiveReady.store(true);
+	} catch (const std::exception &ex) {
+		LOG(("Archive unavailable; existing files preserved: %1").arg(ex.what()));
+	}
+}
+
+bool addEditedMessage(const EditedMessage &message) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
+	try {
+		ArchiveDatabaseStorage().begin_transaction();
+		ArchiveDatabaseStorage().insert(message);
+		ArchiveDatabaseStorage().commit();
+		return true;
 	} catch (std::exception &ex) {
 		try {
-			storage.rollback();
+			ArchiveDatabaseStorage().rollback();
 		} catch (...) {
 		}
 		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
+		return false;
+	}
+}
+
+std::optional<std::vector<std::pair<ID, std::string>>> mediaReferences() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
+	try {
+		auto result = std::vector<std::pair<ID, std::string>>();
+		for (const auto &[owner, path] : ArchiveDatabaseStorage().select(columns(
+			column<DeletedMessage>(&DeletedMessage::userId),
+			column<DeletedMessage>(&DeletedMessage::mediaPath)))) {
+			result.emplace_back(owner, path);
+		}
+		for (const auto &[owner, path] : ArchiveDatabaseStorage().select(columns(
+			column<EditedMessage>(&EditedMessage::userId),
+			column<EditedMessage>(&EditedMessage::mediaPath)))) {
+			result.emplace_back(owner, path);
+		}
+		return result;
+	} catch (const std::exception &error) {
+		LOG(("AxGram: media references could not be read: %1").arg(error.what()));
+		return std::nullopt;
 	}
 }
 
 std::vector<EditedMessage> getEditedMessages(ID userId, ID dialogId, ID messageId, ID minId, ID maxId, int totalLimit) {
-	return storage.get_all<EditedMessage>(
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
+	return ArchiveDatabaseStorage().get_all<EditedMessage>(
 		where(
 			column<EditedMessage>(&EditedMessage::userId) == userId and
 			column<EditedMessage>(&EditedMessage::dialogId) == dialogId and
@@ -289,8 +364,10 @@ std::vector<EditedMessage> getEditedMessages(ID userId, ID dialogId, ID messageI
 }
 
 bool hasRevisions(ID userId, ID dialogId, ID messageId) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return !storage.select(
+		return !ArchiveDatabaseStorage().select(
 			columns(column<EditedMessage>(&EditedMessage::messageId)),
 			where(
 				column<EditedMessage>(&EditedMessage::userId) == userId and
@@ -305,23 +382,29 @@ bool hasRevisions(ID userId, ID dialogId, ID messageId) {
 	}
 }
 
-void addDeletedMessage(const DeletedMessage &message) {
+bool addDeletedMessage(const DeletedMessage &message) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.begin_transaction();
-		storage.insert(message);
-		storage.commit();
+		ArchiveDatabaseStorage().begin_transaction();
+		ArchiveDatabaseStorage().insert(message);
+		ArchiveDatabaseStorage().commit();
+		return true;
 	} catch (std::exception &ex) {
 		try {
-			storage.rollback();
+			ArchiveDatabaseStorage().rollback();
 		} catch (...) {
 		}
-		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
+		LOG(("Failed to save deleted message: %1").arg(ex.what()));
+		return false;
 	}
 }
 
 std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicId, ID minId, ID maxId, int totalLimit, const std::string &searchQuery) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	if (searchQuery.empty()) {
-		return storage.get_all<DeletedMessage>(
+		return ArchiveDatabaseStorage().get_all<DeletedMessage>(
 			where(
 				column<DeletedMessage>(&DeletedMessage::userId) == userId and
 				column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
@@ -343,7 +426,7 @@ std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicI
 		escaped += c;
 	}
 	const auto pattern = "%" + escaped + "%";
-	return storage.get_all<DeletedMessage>(
+	return ArchiveDatabaseStorage().get_all<DeletedMessage>(
 		where(
 			column<DeletedMessage>(&DeletedMessage::userId) == userId and
 			column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
@@ -358,8 +441,10 @@ std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicI
 }
 
 bool hasDeletedMessages(ID userId, ID dialogId, ID topicId) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return !storage.select(
+		return !ArchiveDatabaseStorage().select(
 			columns(column<DeletedMessage>(&DeletedMessage::dialogId)),
 			where(
 				column<DeletedMessage>(&DeletedMessage::userId) == userId and
@@ -374,37 +459,60 @@ bool hasDeletedMessages(ID userId, ID dialogId, ID topicId) {
 	}
 }
 
-void removeDeletedMessage(ID userId, ID dialogId, ID messageId) {
+std::vector<std::string> removeDeletedMessage(ID userId, ID dialogId, ID messageId) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.remove_all<DeletedMessage>(
+		const auto paths = ArchiveDatabaseStorage().select(
+			column<DeletedMessage>(&DeletedMessage::mediaPath),
+			where(
+				column<DeletedMessage>(&DeletedMessage::userId) == userId and
+				column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
+				column<DeletedMessage>(&DeletedMessage::messageId) == messageId));
+		ArchiveDatabaseStorage().remove_all<DeletedMessage>(
 			where(
 				column<DeletedMessage>(&DeletedMessage::userId) == userId and
 				column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
 				column<DeletedMessage>(&DeletedMessage::messageId) == messageId
 			)
 		);
+		return paths;
 	} catch (std::exception &ex) {
 		LOG(("Failed to remove deleted message: %1").arg(ex.what()));
+		return {};
 	}
 }
 
-void clearDeletedMessages(ID userId, ID dialogId, ID topicId) {
+std::vector<std::string> clearDeletedMessages(ID userId, ID dialogId, ID topicId) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.remove_all<DeletedMessage>(
+		const auto paths = ArchiveDatabaseStorage().select(
+			column<DeletedMessage>(&DeletedMessage::mediaPath),
+			where(
+				column<DeletedMessage>(&DeletedMessage::userId) == userId and
+				column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
+				(column<DeletedMessage>(&DeletedMessage::topicId) == topicId or topicId == 0)));
+		ArchiveDatabaseStorage().remove_all<DeletedMessage>(
 			where(
 				column<DeletedMessage>(&DeletedMessage::userId) == userId and
 				column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
 				(column<DeletedMessage>(&DeletedMessage::topicId) == topicId or topicId == 0)
 			)
 		);
-	} catch (std::exception &) {
+		return paths;
+	} catch (std::exception &ex) {
+		LOG(("Failed to clear deleted messages: %1").arg(ex.what()));
+		return {};
 	}
 }
 
 template<typename T>
 std::vector<T> getAllT() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return storage.get_all<T>();
+		return ArchiveDatabaseStorage().get_all<T>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to get all: %1").arg(ex.what()));
 		return {};
@@ -412,18 +520,24 @@ std::vector<T> getAllT() {
 }
 
 std::vector<RegexFilter> getAllRegexFilters() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	return getAllT<RegexFilter>();
 }
 
 std::vector<RegexFilterGlobalExclusion> getAllFiltersExclusions() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	return getAllT<RegexFilterGlobalExclusion>();
 }
 
 std::vector<RegexFilter> getExcludedByDialogId(ID dialogId) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return storage.get_all<RegexFilter>(
+		return ArchiveDatabaseStorage().get_all<RegexFilter>(
 			where(in(&RegexFilter::id,
-					 storage.select(columns(&RegexFilterGlobalExclusion::filterId),
+					 ArchiveDatabaseStorage().select(columns(&RegexFilterGlobalExclusion::filterId),
 									where(is_equal(&RegexFilterGlobalExclusion::dialogId, dialogId))
 					 )
 			))
@@ -435,8 +549,10 @@ std::vector<RegexFilter> getExcludedByDialogId(ID dialogId) {
 }
 
 int getCount() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return storage.count<RegexFilter>();
+		return ArchiveDatabaseStorage().count<RegexFilter>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to get count: %1").arg(ex.what()));
 		return 0;
@@ -444,8 +560,10 @@ int getCount() {
 }
 
 RegexFilter getById(std::vector<char> id) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return storage.get<RegexFilter>(
+		return ArchiveDatabaseStorage().get<RegexFilter>(
 			where(column<RegexFilter>(&RegexFilter::id) == std::move(id))
 		);
 	} catch (std::exception &ex) {
@@ -455,8 +573,10 @@ RegexFilter getById(std::vector<char> id) {
 }
 
 std::vector<RegexFilter> getShared() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return storage.get_all<RegexFilter>(
+		return ArchiveDatabaseStorage().get_all<RegexFilter>(
 			where(is_null(column<RegexFilter>(&RegexFilter::dialogId)))
 		);
 	} catch (std::exception &ex) {
@@ -466,8 +586,10 @@ std::vector<RegexFilter> getShared() {
 }
 
 std::vector<RegexFilter> getByDialogId(ID dialogId) {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return storage.get_all<RegexFilter>(
+		return ArchiveDatabaseStorage().get_all<RegexFilter>(
 			where(column<RegexFilter>(&RegexFilter::dialogId) == dialogId)
 		);
 	} catch (std::exception &ex) {
@@ -477,13 +599,15 @@ std::vector<RegexFilter> getByDialogId(ID dialogId) {
 }
 
 void addRegexFilter(const RegexFilter &filter) {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.begin_transaction();
-		storage.replace(filter); // we're using replace as we set std::vector<char> as primary key
-		storage.commit();
+		ArchiveDatabaseStorage().begin_transaction();
+		ArchiveDatabaseStorage().replace(filter); // we're using replace as we set std::vector<char> as primary key
+		ArchiveDatabaseStorage().commit();
 	} catch (std::exception &ex) {
 		try {
-			storage.rollback();
+			ArchiveDatabaseStorage().rollback();
 		} catch (...) {
 		}
 		LOG(("Failed to save regex filter for some reason: %1").arg(ex.what()));
@@ -491,13 +615,15 @@ void addRegexFilter(const RegexFilter &filter) {
 }
 
 void addRegexExclusion(const RegexFilterGlobalExclusion &exclusion) {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.begin_transaction();
-		storage.insert(exclusion);
-		storage.commit();
+		ArchiveDatabaseStorage().begin_transaction();
+		ArchiveDatabaseStorage().insert(exclusion);
+		ArchiveDatabaseStorage().commit();
 	} catch (std::exception &ex) {
 		try {
-			storage.rollback();
+			ArchiveDatabaseStorage().rollback();
 		} catch (...) {
 		}
 		LOG(("Failed to save regex filter exclusion for some reason: %1").arg(ex.what()));
@@ -505,8 +631,10 @@ void addRegexExclusion(const RegexFilterGlobalExclusion &exclusion) {
 }
 
 void updateRegexFilter(const RegexFilter &filter) {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.update_all(
+		ArchiveDatabaseStorage().update_all(
 			set(
 				c(&RegexFilter::text) = filter.text,
 				c(&RegexFilter::enabled) = filter.enabled,
@@ -522,8 +650,10 @@ void updateRegexFilter(const RegexFilter &filter) {
 }
 
 void deleteFilter(const std::vector<char> &id) {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.remove_all<RegexFilter>(
+		ArchiveDatabaseStorage().remove_all<RegexFilter>(
 			where(column<RegexFilter>(&RegexFilter::id) == id)
 		);
 	} catch (std::exception &ex) {
@@ -532,8 +662,10 @@ void deleteFilter(const std::vector<char> &id) {
 }
 
 void deleteExclusionsByFilterId(const std::vector<char> &id) {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.remove_all<RegexFilterGlobalExclusion>(
+		ArchiveDatabaseStorage().remove_all<RegexFilterGlobalExclusion>(
 			where(column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::filterId) == id)
 		);
 	} catch (std::exception &ex) {
@@ -542,8 +674,10 @@ void deleteExclusionsByFilterId(const std::vector<char> &id) {
 }
 
 void deleteExclusion(ID dialogId, std::vector<char> filterId) {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.remove_all<RegexFilterGlobalExclusion>(
+		ArchiveDatabaseStorage().remove_all<RegexFilterGlobalExclusion>(
 			where(column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::filterId) == filterId and
 				column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::dialogId) == dialogId
 			)
@@ -554,24 +688,30 @@ void deleteExclusion(ID dialogId, std::vector<char> filterId) {
 }
 
 void deleteAllFilters() {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.remove_all<RegexFilter>();
+		ArchiveDatabaseStorage().remove_all<RegexFilter>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to delete all regex filter for some reason: %1").arg(ex.what()));
 	}
 }
 
 void deleteAllExclusions() {
+	if (!ArchiveReady.load()) return;
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		storage.remove_all<RegexFilterGlobalExclusion>();
+		ArchiveDatabaseStorage().remove_all<RegexFilterGlobalExclusion>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to delete all regex filter exclusions for some reason: %1").arg(ex.what()));
 	}
 }
 
 bool hasFilters() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
-		return !storage.select(
+		return !ArchiveDatabaseStorage().select(
 			columns(column<RegexFilter>(&RegexFilter::id)),
 			limit(1)
 		).empty();
@@ -582,14 +722,16 @@ bool hasFilters() {
 }
 
 bool hasPerDialogFilters() {
+	if (!ArchiveReady.load()) return {};
+	const auto lock = std::lock_guard(ArchiveDatabaseMutex);
 	try {
 		return
-			!storage.select(
+			!ArchiveDatabaseStorage().select(
 				columns(column<RegexFilter>(&RegexFilter::id)),
 				where(is_not_null(column<RegexFilter>(&RegexFilter::dialogId))),
 				limit(1)
 			).empty() ||
-			!storage.select(
+			!ArchiveDatabaseStorage().select(
 				columns(column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::fakeId)),
 				limit(1)
 			).empty();

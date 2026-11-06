@@ -6,6 +6,12 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "intro/intro_widget.h"
+#include "intro/intro_brand.h"
+#include "intro/intro_glass_button.h"
+#include "window/themes/window_theme.h"
+#include <QtWidgets/QGraphicsOpacityEffect>
+#include "ax/ui/appearance/glass_controls.h"
+#include "ax/ui/appearance/glass_rail.h"
 
 #include "intro/intro_phone.h"
 #include "intro/intro_qr.h"
@@ -35,6 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/abstract_box.h"
 #include "core/update_checker.h"
 #include "core/application.h"
+#include "core/core_settings.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "window/window_slide_animation.h"
 #include "window/window_connecting_widget.h"
@@ -55,6 +62,107 @@ namespace Intro {
 namespace {
 
 using namespace ::Intro::details;
+
+constexpr auto kWelcomeDuration = crl::time(1400);
+
+class WelcomeStep final : public Step {
+public:
+	WelcomeStep(QWidget *parent, not_null<Main::Account*> account,
+		not_null<Data*> data, EnterPoint point, Fn<void(qreal)> changed)
+	: Step(parent, account, data)
+	, _point(point)
+	, _changed(std::move(changed)) {
+		setTitleText(rpl::single(QString()));
+		setDescriptionText(rpl::single(QString()));
+		Lang::Updated() | rpl::on_next([=] { update(); }, lifetime());
+	}
+	bool hasBack() const override {
+		return getData()->accountBeforeIntro.get()
+			|| Core::App().domain().maybeLastOrSomeAuthedAccount();
+	}
+	QString accessibilityName() override { return u"AxGram"_q; }
+	QString accessibilityDescription() override { return tr::ax_IntroAbout(tr::now); }
+	void submit() override {
+		if (_point == EnterPoint::Phone) {
+			goNext<PhoneWidget>();
+		} else {
+			goNext<QrWidget>();
+		}
+	}
+	rpl::producer<QString> nextButtonText() const override {
+		return tr::lng_start_msgs();
+	}
+	void activate() override {
+		Step::activate();
+		_appearance.stop();
+		_elapsed = AxGlass::MotionAllowed() ? 0. : kWelcomeDuration;
+		_changed(_elapsed);
+		if (_elapsed == 0.) {
+			_appearance.start([=] {
+				_elapsed = _appearance.value(kWelcomeDuration);
+				_changed(_elapsed);
+				update();
+			}, 0., kWelcomeDuration, kWelcomeDuration, anim::linear);
+		}
+		update();
+	}
+	void finished() override {
+		_appearance.stop();
+		Step::finished();
+	}
+protected:
+	void paintEvent(QPaintEvent *e) override {
+		auto p = QPainter(this);
+		if (paintAnimated(p, e->rect())) {
+			return;
+		}
+		const auto dark = st::windowBg->c.lightnessF() < .5;
+		const auto colors = AxGlass::Colors(dark);
+		const auto tile = st::introBrandTile;
+		const auto amount = Brand::Channel(_elapsed, 40., 380.);
+		const auto top = contentTop() + st::introBrandTileTop;
+		p.setRenderHint(QPainter::Antialiasing);
+		p.save();
+		p.setOpacity(amount);
+		p.translate(width() / 2., top + tile / 2. + st::introBrandRise * (1. - amount));
+		p.rotate(-7. * (1. - amount));
+		const auto bump = std::sin(Brand::Progress(_elapsed, 680., 280.) * M_PI) * .035;
+		p.scale(.62 + .38 * amount + bump, .62 + .38 * amount + bump);
+		const auto rect = QRectF(-tile / 2., -tile / 2., tile, tile);
+		auto outline = QPainterPath();
+		outline.addRoundedRect(rect, st::introGlassCardRadius, st::introGlassCardRadius);
+		AxGlass::PaintCard(p, outline, colors.surface, colors.muted, st::lineWidth, 0.);
+		const auto mark = st::introBrandMark;
+		Brand::PaintMark(p, QRectF(-mark / 2., -mark / 2., mark, mark), dark, _elapsed);
+		p.restore();
+		p.setFont(st::introBrandNameFont);
+		const auto name = u"AxGram"_q;
+		const auto metrics = QFontMetrics(p.font());
+		auto x = (width() - metrics.horizontalAdvance(name)) / 2.;
+		for (auto i = 0; i != name.size(); ++i) {
+			const auto shown = Brand::Channel(_elapsed, 700. + i * 45., 320.);
+			p.setOpacity(shown);
+			p.setPen(colors.text);
+			p.drawText(QPointF(x, contentTop() + st::introBrandNameTop
+				+ metrics.ascent() + st::introBrandRise * (1. - shown)), QString(name[i]));
+			x += metrics.horizontalAdvance(name.left(i + 1)) - metrics.horizontalAdvance(name.left(i));
+		}
+		const auto shown = Brand::Channel(_elapsed, 960., 320.);
+		p.setOpacity(shown);
+		p.setFont(st::introDescription.style.font);
+		p.setPen(colors.muted);
+		p.drawText(QRect(contentLeft(), contentTop() + st::introBrandTaglineTop
+			+ qRound(st::introBrandRise * (1. - shown)), st::introCountry.width,
+			st::introDescription.style.font->height * 3),
+			Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, tr::ax_IntroAbout(tr::now));
+	}
+private:
+	const EnterPoint _point;
+	Fn<void(qreal)> _changed;
+	Ui::Animations::Simple _appearance;
+	qreal _elapsed = kWelcomeDuration;
+};
+
 
 [[nodiscard]] QString ComputeNewAccountCountry() {
 	if (const auto parent
@@ -84,14 +192,14 @@ Widget::Widget(
 	.controller = controller,
 	.accountBeforeIntro = base::make_weak(accountBeforeIntro),
 })
-, _nextStyle(&st::introNextButton)
+, _nextStyle(AxGlass::Enabled() ? &st::introGlassNextButton : &st::introNextButton)
 , _back(this, object_ptr<Ui::IconButton>(this, st::introBackButton))
 , _settings(
 	this,
 	object_ptr<Ui::RoundButton>(
 		this,
 		tr::lng_menu_settings(),
-		st::defaultBoxButton))
+		AxGlass::Enabled() ? st::introThemeButton : st::defaultBoxButton))
 , _next(
 	this,
 	object_ptr<Ui::RoundButton>(this, nullptr, *_nextStyle))
@@ -100,8 +208,43 @@ Widget::Widget(
 		this,
 		account,
 		rpl::single(true))) {
-	_settings->entity()->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
+	_settings->entity()->setTextTransform(AxGlass::Enabled()
+		? Ui::RoundButtonTextTransform::NoTransform
+		: Ui::RoundButtonTextTransform::ToUpper);
 	controller->setDefaultFloatPlayerDelegate(floatPlayerDelegate());
+	if (AxGlass::Enabled()) {
+		_theme.create(this, object_ptr<Ui::RoundButton>(this, nullptr, st::introThemeButton));
+		ApplyGlassButton(_settings->entity(), st::lineWidth);
+		ApplyGlassButton(_theme->entity(), st::lineWidth);
+		_theme->entity()->setText(rpl::single(rpl::empty)
+			| rpl::then(style::PaletteChanged())
+			| rpl::map([] {
+				return st::windowBg->c.lightnessF() < .5
+					? tr::lng_settings_theme_day(tr::now)
+					: tr::lng_settings_theme_night(tr::now);
+			}));
+		_theme->entity()->setClickedCallback([=] {
+			Core::App().settings().setSystemDarkModeEnabled(false);
+			Core::App().saveSettingsDelayed();
+			const auto dark = st::windowBg->c.lightnessF() >= .5;
+			const auto path = dark
+				? u":/gui/axgram-glass-dark.tdesktop-theme"_q
+				: u":/gui/axgram-glass-light.tdesktop-theme"_q;
+			if (Window::Theme::IsNightMode() == dark) {
+				Window::Theme::Apply(path);
+			} else {
+				Window::Theme::ToggleNightMode(path);
+			}
+			Window::Theme::KeepApplied();
+		});
+		style::PaletteChanged() | rpl::on_next([=] {
+			updateControlsGeometry();
+			update();
+			for (const auto step : _stepHistory) {
+				step->update();
+			}
+		}, lifetime());
+	}
 
 	getData()->country = ComputeNewAccountCountry();
 
@@ -111,7 +254,13 @@ Widget::Widget(
 		crl::on_main(this, [=] { createLanguageLink(); });
 	}, lifetime());
 
-	switch (point) {
+	if (AxGlass::Enabled()) {
+		appendStep(new WelcomeStep(this, _account, getData(), point, [=](qreal elapsed) {
+			_welcomeElapsed = elapsed;
+			updateControlsGeometry();
+			update();
+		}));
+	} else switch (point) {
 	case EnterPoint::Phone:
 		appendStep(new PhoneWidget(this, _account, getData()));
 		break;
@@ -354,7 +503,8 @@ void Widget::setInnerFocus() {
 void Widget::setupStep() {
 	getStep()->nextButtonStyle(
 	) | rpl::on_next([=](const style::RoundButton *st) {
-		const auto nextStyle = st ? st : &st::introNextButton;
+		const auto nextStyle = st ? st : (AxGlass::Enabled()
+			? &st::introGlassNextButton : &st::introNextButton);
 		if (_nextStyle != nextStyle) {
 			_nextStyle = nextStyle;
 			const auto wasShown = _next->toggled();
@@ -419,7 +569,7 @@ void Widget::historyMove(StackAction action, Animate animate) {
 	if (action == StackAction::Back || action == StackAction::Replace) {
 		delete base::take(wasStep);
 	}
-	_back->toggle(getStep()->hasBack(), anim::type::normal);
+	_back->toggle(_stepHistory.size() > 1 || getStep()->hasBack(), anim::type::normal);
 
 	auto stepHasCover = getStep()->hasCover();
 	_settings->toggle(!stepHasCover, anim::type::normal);
@@ -449,6 +599,7 @@ void Widget::hideAndDestroy(object_ptr<Ui::FadeWrap<Ui::RpWidget>> widget) {
 
 void Widget::fixOrder() {
 	_next->raise();
+	if (_theme) _theme->raise();
 	if (_update) _update->raise();
 	if (_changeLanguage) _changeLanguage->raise();
 	_settings->raise();
@@ -709,6 +860,7 @@ void Widget::showTerms(Fn<void()> callback) {
 }
 
 void Widget::showControls() {
+	if (_theme) _theme->show(anim::type::instant);
 	getStep()->show();
 	setupNextButton();
 	_next->toggle(_nextShown, anim::type::instant);
@@ -730,7 +882,7 @@ void Widget::showControls() {
 	if (_terms) {
 		_terms->show(anim::type::instant);
 	}
-	_back->toggle(getStep()->hasBack(), anim::type::instant);
+	_back->toggle(_stepHistory.size() > 1 || getStep()->hasBack(), anim::type::instant);
 }
 
 void Widget::setupNextButton() {
@@ -762,6 +914,7 @@ void Widget::setupNextButton() {
 }
 
 void Widget::hideControls() {
+	if (_theme) _theme->hide(anim::type::instant);
 	getStep()->hide();
 	_next->hide(anim::type::instant);
 	_connecting->setForceHidden(true);
@@ -813,7 +966,26 @@ void Widget::paintEvent(QPaintEvent *e) {
 		_showAnimation->paintContents(p);
 		return;
 	}
-	p.fillRect(e->rect(), st::windowBg);
+	if (AxGlass::Enabled()) {
+		const auto dark = st::windowBg->c.lightnessF() < .5;
+		static const auto light = QImage(u":/gui/art/ax/welcome-light.png"_q);
+		static const auto night = QImage(u":/gui/art/ax/welcome-dark.png"_q);
+		const auto welcome = dynamic_cast<WelcomeStep*>(getStep()) != nullptr;
+		Brand::PaintWallpaper(p, rect(), dark ? night : light, st::windowBg->c,
+			welcome ? .65 : .22, welcome ? _welcomeElapsed : kWelcomeDuration);
+		if (!welcome) {
+			const auto top = getStep()->contentTop() - st::introGlassCardTop;
+			const auto card = QRectF((width() - std::min(st::introGlassCardWidth, width() - 2 * st::introGlassCardPadding)) / 2., top,
+				std::min(st::introGlassCardWidth, width() - 2 * st::introGlassCardPadding),
+				std::min(height() - st::introGlassCardBottom, top + st::introStepHeight + 2 * st::introGlassCardPadding) - top);
+			auto path = QPainterPath();
+			path.addRoundedRect(card, st::introGlassCardRadius, st::introGlassCardRadius);
+			AxGlass::PaintCard(p, path, st::windowBg->c,
+				AxGlass::Colors(dark).muted, st::lineWidth, 0.);
+		}
+	} else {
+		p.fillRect(e->rect(), st::windowBg);
+	}
 }
 
 void Widget::resizeEvent(QResizeEvent *e) {
@@ -837,16 +1009,19 @@ void Widget::updateControlsGeometry() {
 		getStep()->hasCover() ? st::introCoverHeight : 0,
 		shown);
 	_settings->moveToRight(skip, controlsTop + skip);
+	if (_theme) {
+		_theme->moveToRight(skip + _settings->width() + skip, controlsTop + skip);
+	}
 	if (_testModeLabel) {
 		_testModeLabel->moveToRight(
-			skip + _settings->width() + skip,
+			skip + _settings->width() + skip + (_theme ? _theme->width() + skip : 0),
 			_settings->y()
 				+ (_settings->height()
 				- _testModeLabel->height()) / 2);
 	}
 	if (_update) {
 		_update->moveToRight(
-			skip + _settings->width() + skip,
+			skip + _settings->width() + skip + (_theme ? _theme->width() + skip : 0),
 			_settings->y());
 	}
 	_back->moveToLeft(0, controlsTop);
@@ -858,7 +1033,13 @@ void Widget::updateControlsGeometry() {
 		nextTop + st::introNextSlide,
 		nextTop,
 		shownAmount);
-	_next->moveToLeft((width() - _next->width()) / 2, realNextTop);
+	const auto welcome = dynamic_cast<WelcomeStep*>(getStep()) != nullptr;
+	const auto entrance = welcome ? Brand::Channel(_welcomeElapsed, 920., 380.) : 1.;
+	const auto offset = qRound(st::introBrandRise * (1. - entrance));
+	_next->moveToLeft((width() - _next->width()) / 2, realNextTop + offset);
+	if (welcome) {
+		_next->setVisible(_nextShown && entrance > 0.);
+	}
 	getStep()->setShowAnimationClipping(shownAmount > 0
 		? QRect(0, 0, width(), realNextTop)
 		: QRect());
@@ -878,6 +1059,22 @@ void Widget::updateControlsGeometry() {
 			height() - st::introTermsBottom - _terms->height());
 	}
 
+	const auto opacity = [&](QWidget *widget, qreal amount) {
+		if (!welcome) {
+			if (widget->graphicsEffect()) widget->setGraphicsEffect(nullptr);
+			return;
+		}
+		auto effect = qobject_cast<QGraphicsOpacityEffect*>(widget->graphicsEffect());
+		if (!effect) {
+			effect = new QGraphicsOpacityEffect(widget);
+			widget->setGraphicsEffect(effect);
+		}
+		effect->setOpacity(amount);
+	};
+	opacity(_next, entrance);
+	if (_changeLanguage) opacity(_changeLanguage, welcome ? Brand::Channel(_welcomeElapsed, 1040., 280.) : 1.);
+	if (_theme) opacity(_theme, welcome ? Brand::Channel(_welcomeElapsed, 850., 320.) : 1.);
+	opacity(_footer, welcome ? Brand::Channel(_welcomeElapsed, 1100., 240.) : 1.);
 	_footer->move((width() - _footer->width()) / 2, height() - _footer->height() - st::lineWidth * 6);
 }
 
@@ -885,7 +1082,7 @@ void Widget::keyPressEvent(QKeyEvent *e) {
 	if (_showAnimation || getStep()->animating()) return;
 
 	if (e->key() == Qt::Key_Escape || e->key() == Qt::Key_Back) {
-		if (getStep()->hasBack()) {
+		if (_stepHistory.size() > 1 || getStep()->hasBack()) {
 			backRequested();
 		}
 	} else if (e->key() == Qt::Key_Enter

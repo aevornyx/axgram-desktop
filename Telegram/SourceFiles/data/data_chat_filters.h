@@ -9,6 +9,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/flags.h"
 #include "base/timer.h"
+#include "ax/features/folders/folder_replica.h"
+#include <functional>
+
+namespace AxFolders {
+class FolderRuntime;
+class FolderConnection;
+struct RuntimeStatus;
+enum class ConnectionPhase;
+enum class LoginError;
+struct DevicesResult;
+}
 
 class History;
 
@@ -18,6 +29,7 @@ class Key;
 } // namespace Dialogs
 
 namespace Ui {
+class Show;
 struct MoreChatsBarContent;
 } // namespace Ui
 
@@ -47,7 +59,8 @@ public:
 		NoMuted     = (1 << 5),
 		NoRead      = (1 << 6),
 		NoArchived  = (1 << 7),
-		RulesMask   = ((1 << 8) - 1),
+		OnlyArchived = (1 << 13),
+		RulesMask   = ((1 << 8) - 1) | OnlyArchived,
 
 		Chatlist    = (1 << 8),
 		HasMyLinks  = (1 << 9),
@@ -160,6 +173,30 @@ public:
 	void apply(const MTPUpdate &update);
 	void set(ChatFilter filter);
 	void remove(FilterId id);
+	[[nodiscard]] std::optional<AxFolders::Replica> localReplica() const;
+	[[nodiscard]] std::optional<ChatFilter> createLocalFilter(
+		const ChatFilter &draft);
+	[[nodiscard]] std::optional<ChatFilter> rebaseLocalEdit(
+		const QString &uuid,
+		const ChatFilter &baseline,
+		const ChatFilter &edited) const;
+	[[nodiscard]] bool applyLocalReplica(
+		const AxFolders::Replica &expected,
+		const AxFolders::Replica &updated);
+	bool startLocalSync(
+		const QString &workspace,
+		const QByteArray &token,
+		const QByteArray &key,
+		std::function<void(AxFolders::RuntimeStatus)> status);
+	void stopLocalSync();
+	void retryLocalSync();
+	void connectLocalAccount(std::shared_ptr<Ui::Show> show);
+	void disconnectLocalAccount();
+	void cancelLocalAccount();
+	void localDevices(std::function<void(AxFolders::DevicesResult)> done);
+	void revokeLocalDevice(const QString &device, std::function<void(AxFolders::LoginError)> done);
+	[[nodiscard]] AxFolders::ConnectionPhase localConnectionPhase() const;
+	[[nodiscard]] rpl::producer<QString> localConnectionText() const;
 	void moveAllToFront();
 	[[nodiscard]] const std::vector<ChatFilter> &list() const;
 	[[nodiscard]] rpl::producer<> changed() const;
@@ -230,6 +267,10 @@ private:
 	bool applyChange(ChatFilter &filter, ChatFilter &&updated);
 	void applyInsert(ChatFilter filter, int position);
 	void applyRemove(int position);
+	void loadLocalReplica();
+	[[nodiscard]] bool saveLocalFilter(const ChatFilter *filter, FilterId id);
+	void projectLocalReplica(const std::vector<ChatFilter> &filters);
+	void ensureLocalConnection();
 
 	void checkLoadMoreChatsLists();
 	void loadMoreChatsList(FilterId id);
@@ -247,6 +288,11 @@ private:
 	mtpRequestId _toggleTagsRequestId = 0;
 	bool _loaded = false;
 	bool _reloading = false;
+	bool _localReplicaLoaded = false;
+	std::optional<AxFolders::Replica> _localReplica;
+	std::unique_ptr<AxFolders::FolderRuntime> _localSync;
+	std::unique_ptr<AxFolders::FolderConnection> _localConnection;
+	rpl::variable<QString> _localConnectionText = u"Выключено"_q;
 
 	mtpRequestId _suggestedRequestId = 0;
 	std::vector<SuggestedFilter> _suggested;

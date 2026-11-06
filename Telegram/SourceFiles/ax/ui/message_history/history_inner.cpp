@@ -6,57 +6,71 @@
 // Распространяется по GNU GPL v3 — см. LICENSE и NOTICE.md.
 #include "ax/ui/message_history/history_inner.h"
 
-#include "apiwrap.h"
-#include "mainwidget.h"
-#include "mainwindow.h"
 #include "api/api_attached_stickers.h"
+#include "api/api_common.h"
+#include "ax/data/media_storage.h"
 #include "ax/data/messages_storage.h"
 #include "ax/ui/message_history/history_section.h"
-#include "base/call_delayed.h"
-#include "base/unixtime.h"
 #include "base/platform/base_platform_info.h"
 #include "base/qt/qt_key_modifiers.h"
-#include "boxes/sticker_set_box.h"
+#include "base/call_delayed.h"
+#include "base/unixtime.h"
 #include "boxes/peers/edit_participant_box.h"
+#include "boxes/send_files_box.h"
+#include "boxes/sticker_set_box.h"
 #include "chat_helpers/message_field.h"
 #include "core/application.h"
 #include "core/click_handler_types.h"
 #include "core/file_utilities.h"
 #include "crl/crl_async.h"
+#include "data/data_chat_participant_status.h"
 #include "data/data_cloud_file.h"
 #include "data/data_document.h"
 #include "data/data_file_click_handler.h"
 #include "data/data_file_origin.h"
+#include "data/data_forum_topic.h"
 #include "data/data_media_types.h"
 #include "data/data_photo.h"
 #include "data/data_photo_media.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
-#include "history/history.h"
-#include "history/history_item.h"
-#include "history/history_item_components.h"
-#include "history/history_item_text.h"
+#include "history/view/media/history_view_media.h"
 #include "history/view/history_view_context_menu.h"
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/history_view_service_message.h"
-#include "history/view/media/history_view_media.h"
+#include "history/history.h"
+#include "history/history_item.h"
+#include "history/history_item_components.h"
+#include "history/history_item_helpers.h"
+#include "history/history_item_text.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
-#include "styles/style_chat.h"
-#include "styles/style_menu_icons.h"
-#include "ui/inactive_press.h"
-#include "ui/painter.h"
-#include "ui/ui_utility.h"
+#include "storage/localimageloader.h"
+#include "storage/storage_media_prepare.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
 #include "ui/effects/path_shift_gradient.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/inactive_press.h"
+#include "ui/painter.h"
+#include "ui/ui_utility.h"
+#include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
+#include "apiwrap.h"
+#include "mainwidget.h"
+#include "mainwindow.h"
 
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 #include <QtGui/QClipboard>
 #include <QtWidgets/QApplication>
+
+#include "styles/style_boxes.h"
+#include "styles/style_chat.h"
+#include "styles/style_menu_icons.h"
 
 namespace MessageHistory {
 namespace {
@@ -68,6 +82,317 @@ constexpr auto kMessagesFirstPage = 20;
 constexpr auto kMessagesPerPage = 30;
 
 constexpr auto kClearUserpicsAfter = 50;
+
+struct ArchiveCopy {
+	AxMessageBase archive;
+	TextWithTags text;
+	QString filename;
+	VoiceWaveform waveform;
+	crl::time duration = 0;
+	bool voice = false;
+	bool round = false;
+};
+
+struct ArchiveCopySend {
+	SendPaymentHelper payment;
+	bool submitted = false;
+};
+
+bool ArchiveCopyAvailable(
+		not_null<Window::SessionController*> controller,
+		const ArchiveCopy &copy) {
+	const auto owner = ID(controller->session().userId().bare
+		& PeerId::kChatTypeMask);
+	if (copy.archive.userId != owner) {
+		return false;
+	}
+	if (copy.archive.documentType
+		&& AxMedia::Status(copy.archive) != AxMedia::State::Saved) {
+		controller->show(Ui::MakeInformBox(AxMedia::StatusText(copy.archive)));
+		return false;
+	}
+	return true;
+}
+
+void SendArchiveCopy(
+		not_null<Window::SessionController*> controller,
+		base::weak_ptr<Data::Thread> weakThread,
+		std::shared_ptr<ArchiveCopy> copy,
+		not_null<ArchiveCopySend*> state,
+		Api::SendOptions options,
+		std::shared_ptr<Ui::PreparedBundle> bundle = nullptr) {
+	const auto thread = weakThread.get();
+	if (!thread || state->submitted || !ArchiveCopyAvailable(controller, *copy)) {
+		return;
+	}
+	const auto peer = thread->peer();
+	const auto voiceOrRound = copy->voice || copy->round;
+	const auto restriction = copy->round
+		? ChatRestriction::SendVideoMessages
+		: copy->voice
+		? ChatRestriction::SendVoiceMessages
+		: ChatRestriction::SendOther;
+	if (!bundle) {
+		if (const auto error = Data::RestrictionError(peer, restriction)) {
+			Data::ShowSendErrorToast(controller, peer, error);
+			return;
+		} else if (!Data::CanSend(thread, restriction)) {
+			controller->showToast(tr::lng_forward_cant(tr::now));
+			return;
+		}
+	} else {
+		if (!Data::CanSendAnyOf(thread, Data::FilesSendRestrictions())) {
+			controller->showToast(tr::lng_forward_send_files_cant(tr::now));
+			return;
+		}
+		if (bundle->totalCount != 1 || bundle->groups.size() != 1
+			|| bundle->groups.front().list.files.size() != 1) {
+			controller->showToast(tr::lng_send_media_invalid_files(tr::now));
+			return;
+		}
+		const auto check = DefaultCheckForPeer(controller, peer);
+		for (const auto &group : bundle->groups) {
+			for (const auto &file : group.list.files) {
+				if (!check(file, bundle->way.sendImagesAsPhotos(), false)) {
+					return;
+				}
+			}
+		}
+	}
+	const auto textOnly = !bundle && !voiceOrRound;
+	const auto messagesCount = textOnly
+		? ComputeSendingMessagesCount(thread->owningHistory(), {
+			.text = &copy->text,
+		})
+		: 1;
+	if (const auto error = GetErrorForSending(thread, {
+		.text = textOnly ? &copy->text : nullptr,
+		.messagesCount = messagesCount,
+		.ignoreSlowmodeCountdown = (options.scheduled != 0),
+	})) {
+		Data::ShowSendErrorToast(controller, peer, error);
+		return;
+	}
+	const auto resend = crl::guard(controller, [=](int approved) {
+		auto updated = options;
+		updated.starsApproved = approved;
+		SendArchiveCopy(
+			controller,
+			weakThread,
+			copy,
+			state,
+			updated,
+			bundle);
+	});
+	if (!state->payment.check(
+			controller,
+			peer,
+			options,
+			messagesCount,
+			resend)) {
+		return;
+	}
+	state->submitted = true;
+	auto action = Api::SendAction(thread, options);
+	action.clearDraft = false;
+	if (bundle) {
+		const auto type = bundle->way.sendImagesAsPhotos()
+			? SendMediaType::Photo
+			: SendMediaType::File;
+		for (auto &group : bundle->groups) {
+			controller->session().api().sendFiles(
+				std::move(group.list),
+				type,
+				nullptr,
+				action);
+		}
+	} else if (voiceOrRound) {
+		const auto path = QString::fromStdString(copy->archive.mediaPath);
+		const auto done = crl::guard(controller, [=](QByteArray bytes) {
+			if (!weakThread.get()) {
+				return;
+			} else if (bytes.isEmpty()) {
+				state->submitted = false;
+				controller->show(Ui::MakeInformBox(
+					u"Не удалось прочитать файл из архива. Повтори отправку."_q));
+				return;
+			}
+			controller->session().api().sendVoiceMessage(
+				std::move(bytes),
+				copy->waveform,
+				copy->duration,
+				copy->round,
+				action);
+			controller->showThread(weakThread.get(), ShowAtTheEndMsgId);
+		});
+		crl::async([=] {
+			auto source = QFile(path);
+			auto bytes = QByteArray();
+			if (source.open(QIODevice::ReadOnly)) {
+				const auto size = source.size();
+				if (size > 0 && size <= kFileSizePremiumLimit) {
+					bytes = source.readAll();
+					if (source.error() != QFileDevice::NoError
+						|| bytes.size() != size) {
+						bytes.clear();
+					}
+				}
+			}
+			crl::on_main([=, bytes = std::move(bytes)]() mutable {
+				done(std::move(bytes));
+			});
+		});
+		return;
+	} else {
+		auto message = Api::MessageToSend(action);
+		message.textWithTags = copy->text;
+		controller->session().api().sendMessage(std::move(message));
+	}
+	controller->showThread(thread, ShowAtTheEndMsgId);
+}
+
+void ChooseArchiveCopyRecipient(
+		not_null<Window::SessionController*> controller,
+		const AxMessageBase &archive,
+		const TextWithEntities &text,
+		int preparationAttempt = 0) {
+	const auto copy = std::make_shared<ArchiveCopy>();
+	copy->archive = archive;
+	copy->text = {
+		text.text,
+		TextUtilities::ConvertEntitiesToTextTags(text.entities),
+	};
+	const auto owner = ID(controller->session().userId().bare
+		& PeerId::kChatTypeMask);
+	if (archive.userId != owner) {
+		return;
+	}
+	if (archive.documentType
+		&& AxMedia::Status(archive) != AxMedia::State::Saved) {
+		if (!preparationAttempt) {
+			const auto restored = AxMedia::Restore(&controller->session(), archive);
+		}
+		const auto state = AxMedia::Status(archive);
+		if (state == AxMedia::State::Saving && preparationAttempt < 50) {
+			if (!preparationAttempt) {
+				controller->showToast(u"Подготавливаю файл из кэша…"_q);
+			}
+			base::call_delayed(100, controller, [=] {
+				ChooseArchiveCopyRecipient(
+					controller, archive, text, preparationAttempt + 1);
+			});
+			return;
+		} else if (state != AxMedia::State::Saved) {
+			LOG(("AxGram archive copy unavailable: state=%1, fileExists=%2.")
+				.arg(int(state))
+				.arg(QFileInfo::exists(QString::fromStdString(archive.mediaPath))));
+			controller->show(Ui::MakeInformBox(AxMedia::StatusText(archive)));
+			return;
+		}
+	}
+	if (!ArchiveCopyAvailable(controller, *copy)) {
+		return;
+	}
+	if (archive.documentType) {
+		const auto size = QFileInfo(
+			QString::fromStdString(archive.mediaPath)).size();
+		const auto limit = controller->session().premium()
+			? kFileSizePremiumLimit
+			: kFileSizeLimit;
+		if (size <= 0 || size > limit) {
+			controller->show(Ui::MakeInformBox(
+				tr::lng_send_media_invalid_files(tr::now)));
+			return;
+		}
+		const auto restored = AxMedia::Restore(&controller->session(), archive);
+		if (const auto document = restored.document) {
+			copy->filename = QFileInfo(
+				document->filename().replace('\\', '/')).fileName();
+			copy->voice = document->isVoiceMessage();
+			copy->round = document->isVideoMessage();
+			copy->duration = document->duration();
+			if ((copy->voice || copy->round) && copy->duration <= 0) {
+				controller->show(Ui::MakeInformBox(
+					u"В архиве нет длительности этого сообщения. Отправка в исходном формате недоступна."_q));
+				return;
+			}
+			if (const auto voice = document->voice()) {
+				copy->waveform = voice->waveform;
+			}
+		} else if (restored.photo) {
+			copy->filename = u"photo.jpg"_q;
+		} else {
+			controller->show(Ui::MakeInformBox(
+				u"Не удалось восстановить сведения о файле в архиве."_q));
+			return;
+		}
+	}
+	Window::ShowChooseRecipientBox(controller,
+		crl::guard(controller, [=](not_null<Data::Thread*> thread) {
+			if (!ArchiveCopyAvailable(controller, *copy)) {
+				return false;
+			}
+			const auto weakThread = base::make_weak(thread);
+			const auto state = controller->lifetime().make_state<ArchiveCopySend>();
+			if (archive.documentType && !copy->voice && !copy->round) {
+				auto list = Storage::PrepareMediaList(
+					QStringList{ QString::fromStdString(archive.mediaPath) },
+					st::sendMediaPreviewSize,
+					controller->session().premium());
+				if (list.error != Ui::PreparedList::Error::None) {
+					controller->show(Ui::MakeInformBox(
+						tr::lng_send_media_invalid_files(tr::now)));
+					return false;
+				}
+				list.files.front().displayName = copy->filename;
+				if (!archive.mimeType.empty()) {
+					list.files.front().information->filemime
+						= QString::fromStdString(archive.mimeType);
+				}
+				auto box = Box<SendFilesBox>(SendFilesBoxDescriptor{
+					.show = controller->uiShow(),
+					.list = std::move(list),
+					.caption = copy->text,
+					.toPeer = thread->peer(),
+					.limits = DefaultLimitsForPeer(thread->peer())
+						| SendFilesAllow::OnlyOne,
+					.check = DefaultCheckForPeer(controller, thread->peer()),
+					.confirmed = crl::guard(controller, [=](
+							std::shared_ptr<Ui::PreparedBundle> bundle,
+							Api::SendOptions options,
+							FullReplyTo) {
+						SendArchiveCopy(
+							controller,
+							weakThread,
+							copy,
+							state,
+							options,
+							std::move(bundle));
+					}),
+				});
+				controller->show(std::move(box));
+			} else {
+				const auto content = copy->round
+					? u"Видеосообщение (кружок)"_q
+					: copy->voice
+					? u"Голосовое сообщение"_q
+					: copy->text.text;
+				controller->show(Ui::MakeConfirmBox({
+					.text = u"Отправить копию в «%1»?\n\n%2"_q.arg(
+						thread->asTopic()
+							? thread->asTopic()->title()
+							: thread->peer()->name(),
+						content),
+					.confirmed = crl::guard(controller, [=](Fn<void()> close) {
+						SendArchiveCopy(controller, weakThread, copy, state, {});
+						close();
+					}),
+					.confirmText = tr::lng_forward_send(),
+				}));
+			}
+			return true;
+		}), rpl::single(u"Отправить копию"_q));
+}
 
 } // namespace
 
@@ -1162,6 +1487,33 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 	auto view = Element::Hovered()
 					? Element::Hovered()
 					: Element::HoveredLink();
+	if (view) {
+		for (const auto &owned : _items) {
+			if (!owned.get() || owned->data() != view->data()) {
+				continue;
+			}
+			const auto archive = owned.archive();
+			const auto text = view->data()->originalText();
+			if (archive.documentType || !text.text.isEmpty()) {
+				const auto controller = _controller;
+				_menu->addAction(u"Отправить копию…"_q, [=] {
+					ChooseArchiveCopyRecipient(controller, archive, text);
+				}, &st::menuIconForward);
+			}
+			if (!archive.documentType) {
+				break;
+			}
+			_menu->addAction(u"Состояние файла в архиве"_q, [=] {
+				_controller->show(Ui::MakeInformBox(AxMedia::StatusText(archive)));
+			});
+			if (AxMedia::Status(archive) != AxMedia::State::Saved && AxMedia::Status(archive) != AxMedia::State::Saving) {
+				_menu->addAction(u"Повторить сохранение файла из кэша"_q, [=] {
+					const auto restored = AxMedia::Restore(&session(), archive);
+				});
+			}
+			break;
+		}
+	}
 	const auto lnkPhoto = link
 							  ? reinterpret_cast<PhotoData*>(
 								  link->property(kPhotoLinkMediaProperty).toULongLong())
@@ -1170,7 +1522,8 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 								 ? reinterpret_cast<DocumentData*>(
 									 link->property(kDocumentLinkMediaProperty).toULongLong())
 								 : nullptr;
-	auto lnkIsVideo = lnkDocument ? lnkDocument->isVideoFile() : false;
+	const auto lnkIsVideo = lnkDocument
+		&& (lnkDocument->isVideoFile() || lnkDocument->isVideoMessage());
 	auto lnkIsVoice = lnkDocument ? lnkDocument->isVoiceMessage() : false;
 	auto lnkIsAudio = lnkDocument ? lnkDocument->isAudioFile() : false;
 	const auto fromId = PeerId(link
@@ -1352,6 +1705,14 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				},
 				&st::menuIconCopy);
 		}
+	}
+
+	if ((lnkPhoto || lnkDocument) && isUponSelected <= 0 && view
+		&& !view->data()->isService() && view->hasVisibleText()) {
+		const auto itemId = view->data()->fullId();
+		_menu->addAction(tr::lng_context_copy_text(tr::now), [=] {
+			copyContextText(itemId);
+		}, &st::menuIconCopy);
 	}
 
 	if (_menu->empty()) {
@@ -1793,8 +2154,30 @@ void InnerWidget::resizeItem(not_null<Element*> view) {
 }
 
 void InnerWidget::refreshItem(not_null<const Element*> view) {
-	// No need to refresh views in admin log.
-	// sogl
+	for (auto &owned : _items) {
+		if (owned.get() != view) {
+			continue;
+		}
+		const auto hovered = Element::Hovered() == view;
+		const auto pressed = Element::Pressed() == view;
+		const auto hoveredLink = Element::HoveredLink() == view;
+		const auto pressedLink = Element::PressedLink() == view;
+		const auto moused = Element::Moused() == view;
+		owned.refreshView(this);
+		const auto now = owned.get();
+		_itemsByData.insert_or_assign(now->data(), now);
+		if (_visibleTopItem == view) _visibleTopItem = now;
+		if (_scrollDateLastItem == view) _scrollDateLastItem = now;
+		if (_mouseActionItem == view) _mouseActionItem = now;
+		if (_selectedItem == view) _selectedItem = now;
+		if (hovered) Element::Hovered(now);
+		if (pressed) Element::Pressed(now);
+		if (hoveredLink) Element::HoveredLink(now);
+		if (pressedLink) Element::PressedLink(now);
+		if (moused) Element::Moused(now);
+		itemsAdded(Direction::Up, int(_items.size()));
+		return;
+	}
 }
 
 QPoint InnerWidget::mapPointToItem(QPoint point, const Element *view) const {

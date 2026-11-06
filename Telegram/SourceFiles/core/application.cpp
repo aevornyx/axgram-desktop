@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/application.h"
 
+#include "ax/data/media_storage.h"
 #include "data/data_abstract_structure.h"
 #include "data/data_channel.h"
 #include "data/data_forum.h"
@@ -99,6 +100,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QStandardPaths>
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QGuiApplication>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <QtGui/QStyleHints>
+#endif
 #include <QtGui/QScreen>
 
 #include <ksandbox.h>
@@ -227,6 +231,7 @@ void Application::closeAdditionalWindows() {
 }
 
 Application::~Application() {
+	AxMedia::Flush();
 	if (_saveSettingsTimer && _saveSettingsTimer->isActive()) {
 		Local::writeSettings();
 	}
@@ -507,6 +512,28 @@ void Application::startDomain() {
 void Application::startSettingsAndBackground() {
 	Local::rewriteSettingsIfNeeded();
 	Window::Theme::Background()->start();
+	if (settings().readPref<bool>("ax/glassDefaultPending")) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+		const auto systemDark = QGuiApplication::styleHints()->colorScheme()
+			== Qt::ColorScheme::Dark;
+#else
+		const auto systemDark = Platform::IsDarkMode().value_or(false);
+#endif
+		const auto useDark = settings().systemDarkMode().value_or(systemDark);
+		const auto path = useDark
+			? u":/gui/axgram-glass-dark.tdesktop-theme"_q
+			: u":/gui/axgram-glass-light.tdesktop-theme"_q;
+		if (Window::Theme::IsNightMode() != useDark) {
+			Window::Theme::ToggleNightMode(path);
+		} else {
+			Window::Theme::Apply(path);
+		}
+		Window::Theme::KeepApplied();
+		if (Window::Theme::Background()->themeObject().pathAbsolute == path) {
+			settings().writePref<bool>("ax/glassDefaultPending", false);
+			settings().writePref<bool>("ax/glassDefaultInitialized", true);
+		}
+	}
 	checkSystemDarkMode();
 	Ui::SetScreenReaderModeDisabled(
 		settings().readPref<bool>(kScreenReaderModeDisabledKey));

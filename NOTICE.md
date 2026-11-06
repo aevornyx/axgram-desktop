@@ -169,3 +169,26 @@ cmake -D TDESKTOP_API_ID=... -D TDESKTOP_API_HASH=... ...
 
 Каталог сборки `out/` закрыт в `.gitignore` — вместе с `CMakeCache.txt`,
 куда эти значения попадают.
+
+
+## Изменение от 27 октября 2026: аккаунты
+
+В AxGram снята зависимость дополнительных аккаунтов от Premium. Изменены Telegram/SourceFiles/main/main_domain.cpp, boxes/premium_limits_box.cpp и boxes/premium_preview_box.cpp. Предел хранения 200 аккаунтов сохранён.
+
+## AxGram Windows glass folder rail (2026-11-01)
+
+AxGram modified FiltersMenu, FolderFavoriteButton and optional SideBarButton painting; added a scaled native S-shaped rail, live appearance fallback, and shared Android-matched light/dark colours. Existing filter storage, synchronization, reordering, counters and accessibility routes are retained. The two control glyphs are static SVG frames from useAnimations (MIT); their source and full notice are in Telegram/Resources/icons/ax/useanimations. Motion for the contour is native Qt. This phase does not replace all desktop icons.
+
+Windows appearance preparation (2026-11-01): added optional AxGram Glass light and dark native themes using the existing AxGram Android palette and wallpaper bytes. The themes are selectable in AxGram Appearance; existing themes remain available. No account, folder, sync, or message storage format was changed.
+
+
+## Archive database protection (2026-11-04)
+
+The bundled SQLite amalgamation is replaced by SQLCipher Community 4.19.0
+(BSD 3-clause). Its unmodified source, license and reproducible generation
+instructions are in Telegram/SourceFiles/ax/libs/sqlite. The optional Windows archive
+database encryption uses OpenSSL and a per-profile random key wrapped by
+Windows DPAPI. AXGRAM_ENCRYPT_ARCHIVE_DATABASE defaults to OFF.
+Modified initialization preserves existing files on key/migration errors.
+This change covers the AxGram archive database, not Telegram's ordinary cache
+or, by itself, archived media files. Device-bound keys are not portable backups.

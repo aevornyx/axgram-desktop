@@ -6,6 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_session_controller.h"
+#include "ax/features/folders/folder_access.h"
 
 #include "apiwrap.h"
 #include "api/api_cloud_password.h"
@@ -4138,7 +4139,10 @@ bool CheckAndJumpToNearChatsFilter(
 	if (changed >= int(list->size()) || changed < 0) {
 		return false;
 	}
-	if (changed > Data::PremiumLimits(session).dialogFiltersCurrent()) {
+	if (AxFolders::IsPremiumLocked(
+			*list,
+			(*list)[changed].id(),
+			Data::PremiumLimits(session).dialogFiltersCurrent())) {
 		return false;
 	}
 	if (jump) {

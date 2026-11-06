@@ -1,5 +1,10 @@
 <RCC>
     <qresource prefix="/gui">
+        <file alias="art/ax/welcome-dark.png">../../art/ax/welcome-dark.png</file>
+        <file alias="art/ax/welcome-light.png">../../art/ax/welcome-light.png</file>
+        <file alias="axgram-glass-light.tdesktop-theme">../../axgram-glass-light.tdesktop-theme</file>
+        <file alias="axgram-glass-dark.tdesktop-theme">../../axgram-glass-dark.tdesktop-theme</file>
+        <file alias="licenses/useanimations.txt">../../icons/ax/useanimations/LICENSE</file>
         <file alias="langs/ax/ru.json">../../langs/ax/ru.json</file>
         <file alias="art/ax/alt/app.svg">../../art/ax/alt/app.svg</file>
         <file alias="art/ax/alt/app_icon.ico">../../art/ax/alt/app_icon.ico</file>
@@ -18,5 +23,37 @@
         <file alias="art/ax/yaplus/app.svg">../../art/ax/yaplus/app.svg</file>
         <file alias="art/ax/yaplus/app_icon.ico">../../art/ax/yaplus/app_icon.ico</file>
         <file alias="icons/ax/nocover.svg">../../icons/ax/nocover.svg</file>
+        <file alias="ax-animations/settings.json">../../icons/ax/useanimations/settings.json</file>
+        <file alias="ax-animations/user.json">../../icons/ax/useanimations/user.json</file>
+        <file alias="ax-animations/notification.json">../../icons/ax/useanimations/notification.json</file>
+        <file alias="ax-animations/lock.json">../../icons/ax/useanimations/lock.json</file>
+        <file alias="ax-animations/message-circle.json">../../icons/ax/useanimations/message-circle.json</file>
+        <file alias="ax-animations/folder.json">../../icons/ax/useanimations/folder.json</file>
+        <file alias="ax-animations/activity.json">../../icons/ax/useanimations/activity.json</file>
+        <file alias="ax-animations/phone.json">../../icons/ax/useanimations/phone.json</file>
+        <file alias="ax-animations/globe.json">../../icons/ax/useanimations/globe.json</file>
+        <file alias="ax-animations/help.json">../../icons/ax/useanimations/help.json</file>
+        <file alias="ax-animations/star.json">../../icons/ax/useanimations/star.json</file>
+        <file alias="ax-animations/download.json">../../icons/ax/useanimations/download.json</file>
+        <file alias="ax-animations/shield.json">../../icons/ax/useanimations/shield.json</file>
+        <file alias="ax-animations/edit.json">../../icons/ax/useanimations/edit.json</file>
+        <file alias="ax-animations/mail.json">../../icons/ax/useanimations/mail.json</file>
+        <file alias="ax-animations/archive.json">../../icons/ax/useanimations/archive.json</file>
+        <file alias="ax-animations/search-to-x.json">../../icons/ax/useanimations/search-to-x.json</file>
+        <file alias="ax-animations/menu.json">../../icons/ax/useanimations/menu.json</file>
+        <file alias="ax-animations/plus-to-x.json">../../icons/ax/useanimations/plus-to-x.json</file>
+        <file alias="ax-animations/video.json">../../icons/ax/useanimations/video.json</file>
+        <file alias="ax-animations/monitor.json">../../icons/ax/useanimations/monitor.json</file>
+        <file alias="ax-animations/book.json">../../icons/ax/useanimations/book.json</file>
+        <file alias="ax-animations/filter.json">../../icons/ax/useanimations/filter.json</file>
+        <file alias="ax-animations/power.json">../../icons/ax/useanimations/power.json</file>
+        <file alias="ax-animations/users.json">../../icons/ax/useanimations/users.json</file>
+        <file alias="ax-animations/credit-card.json">../../icons/ax/useanimations/credit-card.json</file>
+        <file alias="ax-animations/modes.json">../../icons/ax/useanimations/modes.json</file>
     </qresource>
+  <qresource prefix="/gui/ax-animations">
+    <file alias="bookmark.json">../../icons/ax/useanimations/bookmark.json</file>
+    <file alias="moon.json">../../icons/ax/useanimations/moon.json</file>
+    <file alias="speaker.json">../../icons/ax/useanimations/speaker.json</file>
+  </qresource>
 </RCC>

@@ -7,11 +7,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+class DocumentData;
 class HistoryItem;
 
 namespace Api {
 
 struct RemoteFileInfo;
+
+[[nodiscard]] MTPVector<MTPDocumentAttribute> ComposeDocumentAttributes(
+	not_null<DocumentData*> document);
 
 MTPInputMedia PrepareUploadedPhoto(
 	not_null<HistoryItem*> item,

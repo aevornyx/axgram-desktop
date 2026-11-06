@@ -1,3 +1,7 @@
+7.0.13 (05.11.26)
+
+- AxGram Glass accent color selection and consistent action icon colors.
+
 7.0.9 (05.08.26)
 
 - Add saving rich messages to HTML and importing them back.

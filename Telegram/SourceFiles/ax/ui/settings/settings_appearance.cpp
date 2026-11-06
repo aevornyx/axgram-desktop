@@ -1,13 +1,18 @@
-// Часть AxGram для Desktop. Файл изменён.
+// Р§Р°СЃС‚СЊ AxGram РґР»СЏ Desktop. Р¤Р°Р№Р» РёР·РјРµРЅС‘РЅ.
 //
-// Основано на исходном коде AyuGram for Desktop.
+// РћСЃРЅРѕРІР°РЅРѕ РЅР° РёСЃС…РѕРґРЅРѕРј РєРѕРґРµ AyuGram for Desktop.
 // Copyright @Radolyn, 2026
 //
-// Распространяется по GNU GPL v3 — см. LICENSE и NOTICE.md.
+// Р Р°СЃРїСЂРѕСЃС‚СЂР°РЅСЏРµС‚СЃСЏ РїРѕ GNU GPL v3 вЂ” СЃРј. LICENSE Рё NOTICE.md.
 #include "ax/ui/settings/settings_appearance.h"
 
 #include "lang_auto.h"
 #include "ax/ax_settings.h"
+#include "core/application.h"
+#include "ax/ui/appearance/glass_accent.h"
+#include "ax/ui/appearance/glass_accent_settings.h"
+#include "ui/widgets/color_editor.h"
+#include "ui/layers/generic_box.h"
 #include "ax/ax_ui_settings.h"
 #include "ax/ui/boxes/font_selector.h"
 #include "ax/ui/components/avatar_corners_preview.h"
@@ -27,9 +32,11 @@
 #include "styles/style_settings.h"
 #include "ui/painter.h"
 #include "ui/widgets/labels.h"
+#include "ui/widgets/buttons.h"
 #include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
+#include "window/themes/window_theme.h"
 
 namespace Settings {
 
@@ -57,8 +64,19 @@ void BuildAppIcon(SectionBuilder &builder, AxSectionBuilder &ax) {
 	});
 
 	builder.add([](const WidgetContext &ctx) -> SectionBuilder::WidgetToAdd {
+		auto onChanged = Fn<void()>();
+#ifdef Q_OS_LINUX
+		if (!qEnvironmentVariableIsEmpty("APPIMAGE")) {
+			onChanged = [controller = ctx.controller] {
+				ShowRestartPrompt(controller, [] {
+					qputenv("AXGRAM_APPIMAGE_ICON_RESTART", "1");
+					Core::Restart();
+				});
+			};
+		}
+#endif
 		return {
-			.widget = object_ptr<IconPicker>(ctx.container),
+			.widget = object_ptr<IconPicker>(ctx.container, std::move(onChanged)),
 			.margin = st::settingsButtonNoIcon.padding,
 		};
 	});
@@ -189,6 +207,108 @@ void BuildAppearance(SectionBuilder &builder, AxSectionBuilder &ax) {
 	auto *settings = &AxSettings::getInstance();
 
 	builder.addSubsectionTitle(tr::ax_CategoryAppearance());
+
+	const auto telegramInterface = builder.addButton({
+		.id = u"ax/telegramInterface"_q,
+		.altIds = { u"ax/glassFolders"_q },
+		.title = tr::ax_GlassFolders(),
+		.st = &st::settingsButtonNoIcon,
+		.toggled = rpl::single(settings->glassFolders())
+			| rpl::then(settings->glassFoldersChanges())
+			| rpl::map([](bool glass) { return !glass; }),
+		.keywords = { u"Telegram"_q, u"interface"_q, u"standard"_q },
+	});
+	if (telegramInterface) {
+		telegramInterface->toggledChanges(
+		) | rpl::filter([=](bool telegram) {
+			return telegram == settings->glassFolders();
+		}) | rpl::on_next([=](bool telegram) {
+			const auto dark = Window::Theme::IsNightMode();
+			if (telegram) {
+				Window::Theme::ApplyDefaultWithPath(
+					dark ? Window::Theme::NightThemePath() : QString());
+				Window::Theme::KeepApplied();
+				settings->setGlassFolders(false);
+			} else {
+				const auto path = dark
+					? u":/gui/axgram-glass-dark.tdesktop-theme"_q
+					: u":/gui/axgram-glass-light.tdesktop-theme"_q;
+				if (Window::Theme::Apply(path)) {
+					Window::Theme::KeepApplied();
+					settings->setGlassFolders(true);
+				}
+			}
+		}, telegramInterface->lifetime());
+	}
+
+	const auto themeController = builder.controller();
+	for (const auto dark : { false, true }) {
+		builder.addButton({
+			.id = dark ? u"ax/glassDarkTheme"_q : u"ax/glassLightTheme"_q,
+			.title = (dark
+				? tr::lng_settings_theme_night()
+				: tr::lng_settings_theme_day()
+			) | rpl::map([](QString name) {
+				return u"AxGram Glass В· "_q + name;
+			}),
+			.st = &st::settingsButtonNoIcon,
+			.onClick = [=] {
+				const auto path = dark
+					? u":/gui/axgram-glass-dark.tdesktop-theme"_q
+					: u":/gui/axgram-glass-light.tdesktop-theme"_q;
+				if (Window::Theme::IsNightMode() == dark) {
+					if (Window::Theme::Apply(path)) {
+						AxSettings::getInstance().setGlassFolders(true);
+						Window::Theme::KeepApplied();
+					}
+				} else {
+					Window::Theme::ToggleNightModeWithConfirmation(
+						&themeController->window(),
+						[=] {
+							Window::Theme::ToggleNightMode(path);
+							AxSettings::getInstance().setGlassFolders(true);
+							Window::Theme::KeepApplied();
+						});
+				}
+			},
+		});
+	}
+
+	builder.addButton({
+		.id = u"ax/glassAccent"_q,
+		.title = tr::lng_settings_theme_accent_title()
+			| rpl::map([](QString title) { return u"AxGram Glass · "_q + title; }),
+		.st = &st::settingsButtonNoIcon,
+		.label = rpl::single(AxGlass::SavedAccent())
+			| rpl::then(AxGlass::AccentChanges())
+			| rpl::map([](QColor color) {
+				return color.isValid() ? color.name(QColor::HexRgb).toUpper()
+					: tr::lng_settings_notifications_display_default(tr::now);
+			}),
+		.onClick = [=] {
+			themeController->show(Box([](not_null<Ui::GenericBox*> box) {
+				const auto saved = AxGlass::SavedAccent();
+				const auto current = saved.isValid() ? saved
+					: AxGlass::CurrentAccent(Window::Theme::IsNightMode());
+				const auto editor = box->addRow(object_ptr<ColorEditor>(
+					box, ColorEditor::Mode::HSL, current));
+				const auto save = [=] {
+					AxGlass::SaveAccent(editor->color());
+					box->closeBox();
+				};
+				editor->submitRequests() | rpl::on_next(save, editor->lifetime());
+				box->setFocusCallback([=] { editor->setInnerFocus(); });
+				box->setTitle(tr::lng_settings_theme_accent_title());
+				box->setWidth(editor->width());
+				box->addButton(tr::lng_settings_save(), save);
+				box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+				box->addLeftButton(tr::lng_shortcuts_reset(), [=] {
+					AxGlass::SaveAccent(QColor());
+					box->closeBox();
+				});
+			}));
+		},
+	});
 
 	ax.addSettingToggle({
 		.id = u"ax/materialSwitches"_q,

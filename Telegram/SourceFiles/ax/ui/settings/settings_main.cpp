@@ -93,8 +93,6 @@ void BuildVersionInfo(SectionBuilder &builder) {
 void BuildCategories(SectionBuilder &builder) {
 	builder.addSkip();
 	builder.addSkip();
-	builder.addSkip();
-	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
 

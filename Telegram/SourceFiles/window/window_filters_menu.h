@@ -42,6 +42,10 @@ public:
 
 private:
 	void setup();
+	void refreshAppearance();
+	void updateLayoutGeometry();
+	void updateContour(bool animated);
+	void paintGlass(QPainter &p);
 	void refresh();
 	void setupList();
 	void updateFavorite();
@@ -100,6 +104,10 @@ private:
 	} _drag;
 
 	Ui::Animations::Simple _scrollToAnimation;
+	Ui::Animations::Simple _contourAnimation;
+	float64 _contourTarget = 0.;
+	bool _rebuildingAppearance = false;
+	bool _menuHasUnread = false;
 
 };
 

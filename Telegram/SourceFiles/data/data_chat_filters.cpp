@@ -6,6 +6,11 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_chat_filters.h"
+#include "ax/features/folders/folder_archive_rules.h"
+#include "ax/features/folders/folder_filter_codec.h"
+#include "ax/features/folders/folder_runtime.h"
+#include "ax/features/folders/folder_connection.h"
+#include "boxes/url_auth_box.h"
 
 #include "api/api_text_entities.h"
 #include "history/history.h"
@@ -22,11 +27,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/chat/more_chats_bar.h"
 #include "main/main_session.h"
+#include "storage/storage_account.h"
 #include "main/main_app_config.h"
 #include "apiwrap.h"
 
 // AxGram includes
 #include "ax/ax_settings.h"
+#include <QtCore/QUuid>
 
 
 namespace Data {
@@ -35,6 +42,27 @@ namespace {
 constexpr auto kRefreshSuggestedTimeout = 7200 * crl::time(1000);
 constexpr auto kLoadExceptionsAfter = 100;
 constexpr auto kLoadExceptionsPerRequest = 100;
+
+[[nodiscard]] QString LocalFoldersRoot() {
+	return cWorkingDir() + u"tdata/ax_folders"_q;
+}
+
+void OrderLocalFolders(
+		std::vector<ChatFilter> &filters,
+		const AxFolders::Replica &replica) {
+	auto existing = std::vector<int>();
+	for (const auto &filter : filters) existing.push_back(filter.id());
+	const auto order = AxFolders::NativeOrder(replica, existing);
+	if (!order) return;
+	auto position = filters.begin();
+	for (const auto id : *order) {
+		const auto found = ranges::find(position, filters.end(), id, &ChatFilter::id);
+		if (found != filters.end()) {
+			std::iter_swap(position, found);
+			++position;
+		}
+	}
+}
 
 [[nodiscard]] crl::time RequestUpdatesEach(not_null<Session*> owner) {
 	const auto appConfig = &owner->session().appConfig();
@@ -386,8 +414,11 @@ bool ChatFilter::contains(
 				|| state.unread
 				|| state.mention
 				|| (!ignoreFakeUnread && history->fakeUnreadWhileOpened()))
-			&& (!(_flags & Flag::NoArchived)
-				|| (history->folderKnown() && !history->folder())))
+			&& AxFolders::MatchesArchiveRule(
+				bool(_flags & Flag::OnlyArchived),
+				bool(_flags & Flag::NoArchived),
+				history->folderKnown(),
+				history->folder() != nullptr))
 		|| _always.contains(history);
 }
 
@@ -420,7 +451,10 @@ ChatFilters::ChatFilters(not_null<Session*> owner)
 	}, _lifetime);
 }
 
-ChatFilters::~ChatFilters() = default;
+ChatFilters::~ChatFilters() {
+	_localConnection.reset();
+	_localSync.reset();
+}
 
 not_null<Dialogs::MainList*> ChatFilters::chatsList(FilterId filterId) {
 	auto &pointer = _chatsLists[filterId];
@@ -517,12 +551,37 @@ void ChatFilters::requestToggleTags(bool value, Fn<void()> fail) {
 void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	// AxGram hideAllChatsFolder
 	const auto &settings = AxSettings::getInstance();
+	loadLocalReplica();
+	auto incoming = std::vector<ChatFilter>();
+	for (const auto &filter : list) {
+		incoming.push_back(ChatFilter::FromTL(filter, _owner));
+	}
+	if (_localReplica) {
+		auto restored = std::vector<ChatFilter>();
+		auto complete = true;
+		for (const auto &local : AxFolders::LocalFolders(*_localReplica)) {
+			const auto filter = AxFolders::ImportFilter(_owner, local.id, local.values);
+			if (!filter) {
+				complete = false;
+				break;
+			}
+			restored.push_back(*filter);
+		}
+		if (complete) {
+			incoming.insert(incoming.end(), restored.begin(), restored.end());
+			OrderLocalFolders(incoming, *_localReplica);
+		} else {
+			LOG(("AxGram: local folders use unsupported settings."));
+			for (const auto &filter : _list) {
+				if (filter.id() >= 1000) incoming.push_back(filter);
+			}
+		}
+	}
 
 	auto position = 0;
 	auto changed = false;
-	for (const auto &filter : list) {
-		auto parsed = ChatFilter::FromTL(filter, _owner);
-		if (settings.hideAllChatsFolder() && parsed.id() == 0 && list.size() > 1) {
+	for (auto &parsed : incoming) {
+		if (settings.hideAllChatsFolder() && parsed.id() == 0 && incoming.size() > 1) {
 			continue;
 		}
 		const auto b = begin(_list) + position;
@@ -552,6 +611,7 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	if (changed || !_loaded || _reloading) {
 		_loaded = true;
 		_reloading = false;
+		ensureLocalConnection();
 		_listChanged.fire({});
 	}
 }
@@ -574,6 +634,10 @@ void ChatFilters::apply(const MTPUpdate &update) {
 		load(true);
 	}, [&](const MTPDupdateDialogFilterOrder &data) {
 		if (applyOrder(data.vorder().v)) {
+			if (_localReplica && !_localReplica->ids.isEmpty()
+				&& !saveLocalFilter(nullptr, -1)) {
+				LOG(("AxGram: local folder order was not saved."));
+			}
 			_listChanged.fire({});
 		} else {
 			load(true);
@@ -695,6 +759,12 @@ void ChatFilters::set(ChatFilter filter) {
 	if (!filter.id()) {
 		return;
 	}
+	if (filter.id() >= 1000) {
+		if (!saveLocalFilter(&filter, filter.id())) {
+			LOG(("AxGram: local folder was not saved."));
+		}
+		return;
+	}
 	const auto i = ranges::find(_list, filter.id(), &ChatFilter::id);
 	if (i == end(_list)) {
 		applyInsert(std::move(filter), _list.size());
@@ -714,11 +784,300 @@ void ChatFilters::applyInsert(ChatFilter filter, int position) {
 }
 
 void ChatFilters::remove(FilterId id) {
+	if (id >= 1000) {
+		if (!saveLocalFilter(nullptr, id)) {
+			LOG(("AxGram: local folder was not removed."));
+		}
+		return;
+	}
 	const auto i = ranges::find(_list, id, &ChatFilter::id);
 	if (i == end(_list)) {
 		return;
 	}
 	applyRemove(i - begin(_list));
+	_listChanged.fire({});
+}
+
+void ChatFilters::loadLocalReplica() {
+	if (_localReplicaLoaded) return;
+	_localReplicaLoaded = true;
+	_localReplica = AxFolders::Load(LocalFoldersRoot(), _owner->session().userId().bare);
+	if (!_localReplica) {
+		LOG(("AxGram: local folder state could not be read."));
+	}
+}
+
+std::optional<AxFolders::Replica> ChatFilters::localReplica() const {
+	return _localReplica;
+}
+
+std::optional<ChatFilter> ChatFilters::createLocalFilter(
+		const ChatFilter &draft) {
+	if (!_loaded || !_localReplica) {
+		return std::nullopt;
+	}
+	auto existing = std::vector<int>();
+	for (const auto &filter : _list) {
+		existing.push_back(filter.id());
+	}
+	const auto id = AxFolders::NextLocalId(*_localReplica, existing);
+	if (!id) {
+		return std::nullopt;
+	}
+	const auto created = draft.withId(*id);
+	if (!saveLocalFilter(&created, *id)) {
+		return std::nullopt;
+	}
+	return created;
+}
+
+std::optional<ChatFilter> ChatFilters::rebaseLocalEdit(
+		const QString &uuid,
+		const ChatFilter &baseline,
+		const ChatFilter &edited) const {
+	if (!_loaded || !_localReplica) {
+		return std::nullopt;
+	}
+	const auto before = AxFolders::ExportFilter(baseline);
+	const auto after = AxFolders::ExportFilter(edited);
+	if (!before || !after) {
+		return std::nullopt;
+	}
+	const auto rebased = AxFolders::RebaseEdit(
+		*_localReplica,
+		uuid,
+		*before,
+		*after);
+	return rebased
+		? AxFolders::ImportFilter(_owner, rebased->id, rebased->values)
+		: std::nullopt;
+}
+
+bool ChatFilters::applyLocalReplica(
+		const AxFolders::Replica &expected,
+		const AxFolders::Replica &updated) {
+	if (!_loaded || !_localReplica
+		|| updated.account != _owner->session().userId().bare
+		|| updated.device != expected.device) {
+		return false;
+	}
+	const auto before = AxFolders::EncodeState(expected);
+	const auto current = AxFolders::EncodeState(*_localReplica);
+	if (!before || !current || *before != *current || !AxFolders::EncodeState(updated)) {
+		return false;
+	}
+	auto filters = std::vector<ChatFilter>();
+	for (const auto &local : AxFolders::LocalFolders(updated)) {
+		const auto filter = AxFolders::ImportFilter(_owner, local.id, local.values);
+		if (!filter) return false;
+		filters.push_back(*filter);
+	}
+	if (!AxFolders::Save(LocalFoldersRoot(), updated)) return false;
+	if (before == AxFolders::EncodeState(updated)) {
+		return true;
+	}
+	_localReplica = updated;
+	projectLocalReplica(filters);
+	return true;
+}
+
+bool ChatFilters::saveLocalFilter(const ChatFilter *filter, FilterId id) {
+	if (!_loaded || !_localReplica || (id < 1000 && id != -1)) return false;
+	auto source = std::vector<AxFolders::LocalFolder>();
+	const auto append = [&](const ChatFilter &value) {
+		if (value.id() < 1000) {
+			source.push_back({ {}, value.id(), {} });
+			return true;
+		}
+		const auto values = AxFolders::ExportFilter(value);
+		if (!values) return false;
+		auto uuid = _localReplica->ids.key(value.id());
+		if (uuid.isEmpty()) {
+			if (!filter || value.id() != id) return false;
+			uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+		}
+		source.push_back({ uuid, value.id(), *values });
+		return true;
+	};
+	auto found = false;
+	for (const auto &value : _list) {
+		if (value.id() == id) {
+			found = true;
+			if (filter && !append(*filter)) return false;
+		} else if (!append(value)) {
+			return false;
+		}
+	}
+	if (filter && !found && !append(*filter)) return false;
+	const auto changed = AxFolders::Capture(*_localReplica, source);
+	if (!changed) {
+		return false;
+	}
+	if (_localSync && AxFolders::EncodeState(*changed) != AxFolders::EncodeState(*_localReplica)) {
+		_localSync->wake();
+	}
+	return applyLocalReplica(*_localReplica, *changed);
+}
+
+bool ChatFilters::startLocalSync(
+		const QString &workspace,
+		const QByteArray &token,
+		const QByteArray &key,
+		std::function<void(AxFolders::RuntimeStatus)> status) {
+	if (!_loaded || !_localReplica) {
+		return false;
+	}
+	_localSync.reset();
+	_localSync = std::make_unique<AxFolders::FolderRuntime>(
+		std::make_unique<AxFolders::FolderHttp>(QUrl(u"https://mistyk-games.ru/axgram-sync"_q)),
+		_owner->session().userId().bare,
+		workspace,
+		token,
+		key,
+		AxFolders::ExchangeStore{
+			[=]() -> std::optional<AxFolders::Replica> {
+				return _loaded ? _localReplica : std::nullopt;
+			},
+			[=](const auto &expected, const auto &updated) {
+				return applyLocalReplica(expected, updated);
+			},
+		},
+		std::move(status));
+	_localSync->wake();
+	return true;
+}
+
+void ChatFilters::stopLocalSync() {
+	_localSync.reset();
+}
+
+void ChatFilters::retryLocalSync() {
+	if (_localConnection) {
+		_localConnection->retry();
+	} else if (_localSync) {
+		_localSync->retry();
+	}
+}
+
+void ChatFilters::ensureLocalConnection() {
+	if (_localConnection || !_loaded) return;
+	if (!_localReplica) { _localConnectionText = u"Не удалось прочитать папки"_q; return; }
+	const auto endpoint = QUrl(u"https://mistyk-games.ru/axgram-sync"_q);
+	const auto root = LocalFoldersRoot();
+	const auto account = qint64(_owner->session().userId().bare);
+	const auto profileKey = _owner->session().local().peekLegacyLocalKey();
+	_localConnection = std::make_unique<AxFolders::FolderConnection>(
+		std::make_unique<AxFolders::FolderHttp>(endpoint), account,
+		AxFolders::ConnectionStorage{
+			[=] { return AxFolders::LoadLogin(root, endpoint, account, profileKey); },
+			[=](const auto &credential) { return AxFolders::SaveLogin(root, endpoint, credential, profileKey); },
+			[=] { return AxFolders::ClearLogin(root, account); },
+		},
+		AxFolders::ConnectionRuntime{
+			[=](const auto &credential, auto changed) {
+				return startLocalSync(credential.workspace, credential.token, credential.key, std::move(changed));
+			},
+			[=] { stopLocalSync(); },
+			[=] { if (_localSync) _localSync->retry(); },
+		},
+		[=](AxFolders::ConnectionPhase phase) {
+			using Phase = AxFolders::ConnectionPhase;
+			switch (phase) {
+			case Phase::Off: _localConnectionText = u"Выключено"_q; break;
+			case Phase::Restoring: _localConnectionText = u"Восстанавливаем подключение"_q; break;
+			case Phase::Confirming: _localConnectionText = u"Подтвердите подключение в AxGram"_q; break;
+			case Phase::Connecting: _localConnectionText = u"Подключаем папки"_q; break;
+			case Phase::Ready: _localConnectionText = u"Подключено"_q; break;
+			case Phase::Syncing: _localConnectionText = u"Синхронизация"_q; break;
+			case Phase::Retrying: _localConnectionText = u"Повторим при восстановлении связи"_q; break;
+			case Phase::NeedsLogin: _localConnectionText = u"Подтвердите подключение снова"_q; break;
+			case Phase::Failure: _localConnectionText = u"Не удалось подключиться. Повторите попытку"_q; break;
+			case Phase::ConfirmationExpired: _localConnectionText = u"Срок подтверждения Telegram истёк. Получите новое подтверждение и попробуйте снова. Ваши папки сохранены."_q; break;
+			}
+		});
+	crl::on_main(&_owner->session(), [=] {
+		if (_localConnection) _localConnection->restore();
+	});
+}
+
+void ChatFilters::connectLocalAccount(std::shared_ptr<Ui::Show> show) {
+	ensureLocalConnection();
+	if (!_localConnection) return;
+	const auto weak = base::make_weak(&_owner->session());
+	_localConnection->connectAccount([=](AxFolders::ConnectionConsent consent) {
+		if (!weak || !consent.active()) return;
+		auto callbacks = std::make_shared<UrlAuthBox::ServiceCallbacks>();
+		callbacks->clientId = consent.flow.clientId;
+		callbacks->origin = consent.flow.endpoint.adjusted(
+			QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment
+		).toString(QUrl::FullyEncoded);
+		callbacks->account = consent.flow.account;
+		callbacks->active = [weak, current = consent.active] { return weak && current(); };
+		callbacks->accepted = [accepted = consent.accepted](QString url) { accepted(std::move(url)); };
+		callbacks->cancelled = [cancel = consent.cancelled] { cancel(); };
+		callbacks->failed = [failed = consent.failed] { failed(); };
+		callbacks->expired = [expired = consent.expired] { if (expired) expired(); };
+		callbacks->bindClose = [bind = consent.bindClose](Fn<void()> close) { bind([close] { close(); }); };
+		UrlAuthBox::ActivateService(show, &_owner->session(), consent.flow.confirmation, callbacks);
+	});
+}
+
+void ChatFilters::disconnectLocalAccount() {
+	if (_localConnection) {
+		_localConnection->disconnectAccount();
+	} else {
+		stopLocalSync();
+		if (!AxFolders::ClearLogin(LocalFoldersRoot(), _owner->session().userId().bare)) {
+			_localConnectionText = u"Не удалось удалить сохранённое подключение"_q;
+		}
+	}
+}
+
+void ChatFilters::cancelLocalAccount() {
+	if (_localConnection) _localConnection->cancel();
+}
+
+void ChatFilters::localDevices(std::function<void(AxFolders::DevicesResult)> done) {
+	ensureLocalConnection();
+	if (_localConnection) _localConnection->devices(std::move(done));
+	else done({ AxFolders::LoginError::Expired });
+}
+
+void ChatFilters::revokeLocalDevice(const QString &device, std::function<void(AxFolders::LoginError)> done) {
+	if (_localConnection) _localConnection->revoke(device, std::move(done));
+	else done(AxFolders::LoginError::Expired);
+}
+
+AxFolders::ConnectionPhase ChatFilters::localConnectionPhase() const {
+	return _localConnection ? _localConnection->phase() : AxFolders::ConnectionPhase::Off;
+}
+
+rpl::producer<QString> ChatFilters::localConnectionText() const {
+	return _localConnectionText.value();
+}
+
+void ChatFilters::projectLocalReplica(const std::vector<ChatFilter> &filters) {
+	for (auto i = int(_list.size()); i > 0; --i) {
+		const auto id = _list[i - 1].id();
+		if (id >= 1000 && !ranges::contains(filters, id, &ChatFilter::id)) {
+			applyRemove(i - 1);
+		}
+	}
+	for (const auto &filter : filters) {
+		const auto i = ranges::find(_list, filter.id(), &ChatFilter::id);
+		if (i == _list.end()) {
+			applyInsert(filter, _list.size());
+		} else {
+			applyChange(*i, ChatFilter(filter));
+		}
+	}
+	const auto all = ranges::find(_list, FilterId(0), &ChatFilter::id);
+	if (AxSettings::getInstance().hideAllChatsFolder() && _list.size() > 1) {
+		if (all != _list.end()) _list.erase(all);
+	} else if (all == _list.end()) {
+		_list.insert(_list.begin(), ChatFilter());
+	}
+	OrderLocalFolders(_list, *_localReplica);
 	_listChanged.fire({});
 }
 
@@ -836,6 +1195,23 @@ bool ChatFilters::applyChange(ChatFilter &filter, ChatFilter &&updated) {
 }
 
 bool ChatFilters::applyOrder(const QVector<MTPint> &order) {
+	const auto hasLocal = ranges::any_of(_list, [](const ChatFilter &filter) {
+		return filter.id() >= 1000;
+	});
+	const auto serverOnly = ranges::all_of(order, [](const MTPint &id) {
+		return id.v < 1000;
+	});
+	if (hasLocal && serverOnly) {
+		auto server = std::vector<int>();
+		for (const auto &id : order) server.push_back(id.v);
+		auto existing = std::vector<int>();
+		for (const auto &filter : _list) existing.push_back(filter.id());
+		const auto resolved = AxFolders::ServerOrder(existing, server);
+		if (!resolved) return false;
+		auto complete = QVector<MTPint>();
+		for (const auto id : *resolved) complete.push_back(MTP_int(id));
+		return applyOrder(complete);
+	}
 	if (order.size() != _list.size()) {
 		return false;
 	} else if (_list.empty()) {
@@ -913,15 +1289,25 @@ void ChatFilters::saveOrder(
 	}
 	const auto api = &_owner->session().api();
 	api->request(_saveOrderRequestId).cancel();
+	auto previous = QVector<MTPint>();
+	for (const auto &filter : _list) previous.push_back(MTP_int(filter.id()));
 
 	auto ids = QVector<MTPint>();
 	ids.reserve(order.size());
 	for (const auto id : order) {
 		ids.push_back(MTP_int(id));
 	}
+	if (!applyOrder(ids)) return;
+	if (_localReplica && !_localReplica->ids.isEmpty()
+		&& !saveLocalFilter(nullptr, -1)) {
+		applyOrder(previous);
+		LOG(("AxGram: local folder order was not saved."));
+		return;
+	}
+	ids.erase(std::remove_if(ids.begin(), ids.end(), [](const MTPint &id) {
+		return id.v >= 1000;
+	}), ids.end());
 	const auto wrapped = MTP_vector<MTPint>(ids);
-
-	apply(MTP_updateDialogFilterOrder(wrapped));
 	_saveOrderRequestId = api->request(MTPmessages_UpdateDialogFiltersOrder(
 		wrapped
 	)).afterRequest(_saveOrderAfterId).send();

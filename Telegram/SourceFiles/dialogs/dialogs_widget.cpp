@@ -6,6 +6,10 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_widget.h"
+#include "ax/ui/appearance/glass_rail.h"
+#include "ax/ui/appearance/glass_controls.h"
+#include "styles/style_glass_rail.h"
+#include "window/themes/window_theme.h"
 
 #include "base/call_delayed.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -472,7 +476,8 @@ Widget::Widget(
 	.under = object_ptr<MenuUnderButton>(_searchControls),
 })
 , _searchForNarrowLayout(_searchControls, st::dialogsSearchForNarrowFilters)
-, _search(_searchControls, st::dialogsFilter, tr::lng_dlg_filter())
+, _searchStyle(std::make_unique<style::InputField>(st::dialogsFilter))
+, _search(_searchControls, *_searchStyle, tr::lng_dlg_filter())
 , _chooseFromUser(
 	_searchControls,
 	object_ptr<Ui::IconButton>(this, st::dialogsSearchFrom))
@@ -806,10 +811,18 @@ Widget::Widget(
 			st::dialogsBgOver,
 			_childListShown.current());
 	};
+	refreshSearchStyle();
+	AxSettings::getInstance().glassFoldersChanges(
+	) | rpl::on_next([=] {
+		refreshSearchStyle();
+		_inner->update();
+		update();
+	}, lifetime());
 	_scroll->setOverscrollBg(overscrollBg());
 	style::PaletteChanged(
 	) | rpl::on_next([=] {
 		_scroll->setOverscrollBg(overscrollBg());
+		refreshSearchStyle();
 	}, lifetime());
 
 	if (_layout != Layout::Child) {
@@ -4873,6 +4886,12 @@ bool Widget::redirectImeToSearch() const {
 	return redirectToSearchPossible();
 }
 
+void Widget::refreshSearchStyle() {
+	const auto glass = AxGlass::Enabled();
+	*_searchStyle = glass ? st::axGlassDialogsFilter : st::dialogsFilter;
+	_search->update();
+}
+
 void Widget::paintEvent(QPaintEvent *e) {
 	if (controller()->contentOverlapped(this, e)) {
 		return;
@@ -4893,7 +4912,12 @@ void Widget::paintEvent(QPaintEvent *e) {
 		_childListShown.current());
 	auto above = QRect(0, 0, width(), _scroll->y());
 	if (above.intersects(r)) {
-		p.fillRect(above.intersected(r), bg);
+		if (AxGlass::Enabled()) {
+			AxGlass::PaintPanel(
+				p, above, bg.color(), Window::Theme::IsNightMode());
+		} else {
+			p.fillRect(above.intersected(r), bg);
+		}
 	}
 
 	auto belowTop = _scroll->y() + _scroll->height();

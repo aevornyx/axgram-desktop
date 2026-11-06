@@ -105,6 +105,8 @@ introStepFieldTop: 96px;
 introPhoneTop: 6px;
 introLinkTop: 24px;
 introCountry: InputField(defaultInputField) {
+	textBg: windowBg;
+	textBgActive: windowBg;
 	textMargins: margins(3px, 27px, 3px, 6px);
 	style: TextStyle(defaultTextStyle) {
 		font: font(16px);
@@ -200,3 +202,27 @@ introQrStepMargins: margins(20px, 8px, 0px, 0px);
 introQrSkipTop: 360px;
 introQrCenterSize: 44px;
 introQrPlane: icon {{ "intro_qr_plane", activeButtonFg }};
+
+introGlassCardWidth: 392px;
+introGlassCardPadding: 28px;
+introGlassCardRadius: 28px;
+introGlassStepTopMin: 44px;
+introGlassCardTop: 34px;
+introGlassCardBottom: 42px;
+introBrandTile: 116px;
+introBrandMark: 78px;
+introBrandTileTop: 0px;
+introBrandNameTop: 142px;
+introBrandTaglineTop: 200px;
+introBrandRise: 22px;
+introBrandNameFont: font(40px semibold);
+introGlassNextButton: RoundButton(introNextButton) {
+	height: 48px;
+	radius: 24px;
+	textTop: 14px;
+}
+introThemeButton: RoundButton(defaultLightButton) {
+	height: 36px;
+	radius: 18px;
+	textTop: 10px;
+}

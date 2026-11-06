@@ -6,6 +6,8 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_common.h"
+#include "ax/ui/appearance/glass_controls.h"
+#include "styles/style_glass_rail.h"
 
 #include "base/timer.h"
 #include "lottie/lottie_icon.h"
@@ -48,6 +50,13 @@ namespace {
 			st.rippleAreaPosition.y(),
 			st.width - st.rippleAreaPosition.x() - st.rippleAreaSize,
 			st.height - st.rippleAreaPosition.y() - st.rippleAreaSize);
+	} else if (AxGlass::Enabled()
+		&& dynamic_cast<Ui::SettingsButton*>(widget)) {
+		args.shape = HighlightShape::Rect;
+		args.radius = st::axGlassControlRadius;
+		args.margin = QMargins(
+			st::axGlassControlInset, st::axGlassControlVerticalInset,
+			st::axGlassControlInset, st::axGlassControlVerticalInset);
 	} else if (const auto round = dynamic_cast<Ui::RoundButton*>(widget)) {
 		const auto &st = round->st();
 		args.shape = HighlightShape::Rect;
@@ -432,6 +441,7 @@ void AddButtonIcon(
 		Ui::RpWidget widget;
 		Icon icon;
 	};
+	const auto sourceIcon = descriptor.icon;
 	const auto icon = button->lifetime().make_state<IconWidget>(
 		button,
 		std::move(descriptor));
@@ -445,11 +455,8 @@ void AddButtonIcon(
 			(size.height() - icon->widget.height()) / 2,
 			size.width());
 	}, icon->widget.lifetime());
-	icon->widget.paintRequest(
-	) | rpl::on_next([=] {
-		auto p = QPainter(&icon->widget);
-		icon->icon.paint(p, 0, 0);
-	}, icon->widget.lifetime());
+	AxGlass::SetupSettingsIcon(button, &icon->widget, sourceIcon,
+		[=](QPainter &p) { icon->icon.paint(p, 0, 0); });
 }
 
 object_ptr<Button> CreateButtonWithIcon(
@@ -457,7 +464,7 @@ object_ptr<Button> CreateButtonWithIcon(
 		rpl::producer<QString> text,
 		const style::SettingsButton &st,
 		IconDescriptor &&descriptor) {
-	auto result = object_ptr<Button>(parent, std::move(text), st);
+	auto result = AxGlass::CreateSettingsButton(parent, std::move(text), st);
 	const auto button = result.data();
 	if (descriptor) {
 		AddButtonIcon(button, st, std::move(descriptor));

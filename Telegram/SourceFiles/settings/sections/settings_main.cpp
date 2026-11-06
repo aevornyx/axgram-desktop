@@ -92,9 +92,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AxGram includes
 #include "ax/ui/settings/settings_main.h"
+#include "ax/ui/settings/settings_appearance.h"
+#include "ax/ui/appearance/glass_controls.h"
+#include "ax/ax_settings.h"
+#include "ax/ui/appearance/glass_rail.h"
 #include "ax/ui/utils/ax_profile_values.h"
 #include "ax/utils/telegram_helpers.h"
-
 
 namespace Settings {
 namespace {
@@ -184,6 +187,17 @@ Cover::Cover(
 , _name(this, st::infoProfileCover.name)
 , _id(this, st::defaultFlatLabel, st::popupMenuWithIcons)
 , _username(this, st::infoProfileMegagroupCover.status) {
+	paintRequest(
+	) | rpl::on_next([=](QRect clip) {
+		if (AxGlass::Enabled()) {
+			auto p = QPainter(this);
+			p.setClipRect(clip);
+			AxGlass::PaintPanel(p, rect(), st::windowBg->c,
+				st::windowBg->c.lightnessF() < .5);
+		}
+	}, lifetime());
+	AxSettings::getInstance().glassFoldersChanges(
+	) | rpl::on_next([=] { update(); }, lifetime());
 	_user->updateFull();
 
 	_name->setSelectable(true);
@@ -388,6 +402,22 @@ void BuildSectionButtons(SectionBuilder &builder) {
 	const auto controller = builder.controller();
 	const auto showOther = builder.showOther();
 
+	builder.addSubsectionTitle(tr::ax_CategoryAppearance());
+	builder.addSectionButton({
+		.title = rpl::single(u"AxGram Glass"_q),
+		.targetSection = AxAppearance::Id(),
+		.icon = { &st::menuIconPalette },
+		.keywords = { u"theme"_q, u"glass"_q, u"appearance"_q },
+	});
+	builder.addSectionButton({
+		.title = tr::lng_settings_section_chat_settings(),
+		.targetSection = ChatId(),
+		.icon = { &st::menuIconChatBubble },
+		.keywords = { u"themes"_q, u"appearance"_q, u"stickers"_q },
+	});
+
+	builder.addSkip();
+	builder.addSubsectionTitle(rpl::single(u"AxGram"_q));
 	builder.addSectionButton({
 		.title = tr::ax_AxPreferences(),
 		.targetSection = AxMain::Id(),
@@ -397,6 +427,8 @@ void BuildSectionButtons(SectionBuilder &builder) {
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
+
+	builder.addSubsectionTitle(rpl::single(u"Telegram"_q));
 
 	if (!session->supportMode()) {
 		builder.addSectionButton({
@@ -419,13 +451,6 @@ void BuildSectionButtons(SectionBuilder &builder) {
 		.targetSection = PrivacySecurityId(),
 		.icon = { &st::menuIconLock },
 		.keywords = { u"security"_q, u"passcode"_q, u"password"_q, u"2fa"_q },
-	});
-
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_chat_settings(),
-		.targetSection = ChatId(),
-		.icon = { &st::menuIconChatBubble },
-		.keywords = { u"themes"_q, u"appearance"_q, u"stickers"_q },
 	});
 
 	{ // Folders

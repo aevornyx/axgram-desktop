@@ -6,6 +6,9 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_top_bar.h"
+#include "ax/ui/appearance/glass_controls.h"
+#include "ax/ui/appearance/glass_rail.h"
+#include "ax/ax_settings.h"
 
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
@@ -378,6 +381,9 @@ TopBar::TopBar(
 	return owned;
 }())
 , _backToggles(std::move(descriptor.backToggles)) {
+	AxSettings::getInstance().glassFoldersChanges(
+	) | rpl::on_next([=] { update(); }, lifetime());
+
 	_peer->updateFull();
 	_communityEffect = (_source == Source::Community);
 	if (const auto broadcast = _peer->monoforumBroadcast()) {
@@ -2802,7 +2808,12 @@ void TopBar::paintEvent(QPaintEvent *e) {
 		}
 	}
 	if (!_hasGradientBg) {
-		paintEdges(p);
+		if (AxGlass::Enabled() && !_solidBg) {
+			paintEdges(p, AxGlass::PanelBrush(
+				rect(), st::windowBg->c, st::windowBg->c.lightnessF() < .5));
+		} else {
+			paintEdges(p);
+		}
 	} else {
 		const auto x = (width()
 			- _cachedGradient.width() / style::DevicePixelRatio())

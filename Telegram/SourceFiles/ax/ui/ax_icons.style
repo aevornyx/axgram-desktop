@@ -12,27 +12,27 @@ using "ui/chat/chat.style";
 using "ui/widgets/widgets.style";
 using "dialogs/dialogs.style";
 
-axGhostIcon: icon {{ "ax/ghost", menuIconColor }};
+axGhostIcon: icon {{ "ax/ghost", menuIconFg }};
 axGhostModeGlobalIcon: icon {{ "ax/ghost_mode_global", historyPeerUserpicFg }};
-axEditsHistoryIcon: icon {{ "ax/edits_history", menuIconColor }};
-axLReadMenuIcon: icon {{ "ax/lread", menuIconColor }};
-axSReadMenuIcon: icon {{ "ax/sread", menuIconColor }};
-axStreamerModeMenuIcon: icon {{ "ax/streamer", menuIconColor }};
-axToBeginningMenuIcon: icon {{ "ax/to_beginning", menuIconColor }};
-axRepeatMenuIcon: icon {{ "ax/repeat", menuIconColor }};
+axEditsHistoryIcon: icon {{ "ax/edits_history", menuIconFg }};
+axLReadMenuIcon: icon {{ "ax/lread", menuIconFg }};
+axSReadMenuIcon: icon {{ "ax/sread", menuIconFg }};
+axStreamerModeMenuIcon: icon {{ "ax/streamer", menuIconFg }};
+axToBeginningMenuIcon: icon {{ "ax/to_beginning", menuIconFg }};
+axRepeatMenuIcon: icon {{ "ax/repeat", menuIconFg }};
 axContactsMutualIcon: icon {{ "ax/contacts_mutual", contactsStatusFg }};
 axContactsMutualIconOver: icon {{ "ax/contacts_mutual", contactsStatusFgOver }};
 
-messageFieldAttachIcon: icon {{ "ax/message_field/attach", menuIconColor }};
-messageFieldCommandsIcon: icon {{ "ax/message_field/commands", menuIconColor }};
-messageFieldEmojiIcon: icon {{ "ax/message_field/emoji", menuIconColor }};
-messageFieldVoiceIcon: icon {{ "ax/message_field/voice", menuIconColor }};
-messageFieldTTLIcon: icon {{ "ax/message_field/ttl", menuIconColor }};
+messageFieldAttachIcon: icon {{ "ax/message_field/attach", menuIconFg }};
+messageFieldCommandsIcon: icon {{ "ax/message_field/commands", menuIconFg }};
+messageFieldEmojiIcon: icon {{ "ax/message_field/emoji", menuIconFg }};
+messageFieldVoiceIcon: icon {{ "ax/message_field/voice", menuIconFg }};
+messageFieldTTLIcon: icon {{ "ax/message_field/ttl", menuIconFg }};
 messageFieldCocoonAiIcon: icon{
 	{ size(24px, 24px), transparent },
-	{ "chat/ai_letters-20x20", menuIconColor, point(2px, 2px) },
-	{ "chat/ai_star1-20x20", menuIconColor, point(2px, 2px) },
-	{ "chat/ai_star2-20x20", menuIconColor, point(2px, 2px) },
+	{ "chat/ai_letters-20x20", menuIconFg, point(2px, 2px) },
+	{ "chat/ai_star1-20x20", menuIconFg, point(2px, 2px) },
+	{ "chat/ai_star2-20x20", menuIconFg, point(2px, 2px) },
 };
 
 inChannelBadgeIcon: icon {{ "ax/channel", msgInDateFg }};

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/specific_linux.h"
 
+#include "ax/ui/ax_logo.h"
 #include "base/openssl_help.h"
 #include "base/random.h"
 #include "base/platform/base_platform_info.h"
@@ -29,6 +30,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QDesktopServices>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QProcess>
+#include <QtCore/QBuffer>
+#include <QtCore/QCryptographicHash>
+#include <QtCore/QSaveFile>
 
 #include <kshell.h>
 #include <ksandbox.h>
@@ -223,7 +227,8 @@ bool GenerateDesktopFile(
 		const QString &targetPath,
 		const QStringList &args = {},
 		bool onlyMainGroup = false,
-		bool silent = false) {
+		bool silent = false,
+		const QString &appImageIcon = {}) {
 	const auto executable = ExecutablePathForShortcuts();
 	if (targetPath.isEmpty() || executable.isEmpty()) {
 		return false;
@@ -330,6 +335,13 @@ bool GenerateDesktopFile(
 
 	if (!args.isEmpty()) {
 		target.remove_key("Desktop Entry", "DBusActivatable");
+	}
+
+	if (!appImageIcon.isEmpty()) {
+		target.set_string("Desktop Entry", "Icon", appImageIcon.toStdString());
+		target.set_string("Desktop Entry", "TryExec", executable.toStdString());
+		target.set_string("Desktop Entry", "X-AxGram-AppImage", "true");
+		target.remove_key("Desktop Entry", "Actions");
 	}
 
 	const auto saved = target.save_to_file(targetFile.toStdString());
@@ -584,6 +596,43 @@ namespace Platform {
 
 void SetApplicationIcon(const QIcon &icon) {
 	QApplication::setWindowIcon(icon);
+	const auto appImage = QFileInfo(qEnvironmentVariable("APPIMAGE"));
+	if (!appImage.isAbsolute() || !appImage.isExecutable() || KSandbox::isInside()) {
+		return;
+	}
+	const auto applications = QStandardPaths::writableLocation(
+		QStandardPaths::ApplicationsLocation) + '/';
+	const auto desktop = applications + QGuiApplication::desktopFileName() + u".desktop"_q;
+	if (QFileInfo::exists(desktop)) {
+		auto existing = QFile(desktop);
+		if (!existing.open(QIODevice::ReadOnly)
+			|| !existing.readAll().contains("\nX-AxGram-AppImage=true")) {
+			return;
+		}
+	}
+	auto png = QByteArray();
+	auto buffer = QBuffer(&png);
+	if (!buffer.open(QIODevice::WriteOnly)
+		|| !AxAssets::currentAppLogo().save(&buffer, "PNG")) {
+		return;
+	}
+	const auto digest = QCryptographicHash::hash(png, QCryptographicHash::Sha256).toHex();
+	const auto iconFolder = QStandardPaths::writableLocation(
+		QStandardPaths::GenericDataLocation) + u"/icons/hicolor/256x256/apps/"_q;
+	const auto iconPath = iconFolder + u"com.axgram.desktop-"_q
+		+ QString::fromLatin1(digest) + u".png"_q;
+	if (!QFileInfo::exists(iconPath)) {
+		if (!QDir().mkpath(iconFolder)) {
+			return;
+		}
+		auto output = QSaveFile(iconPath);
+		if (!output.open(QIODevice::WriteOnly)
+			|| output.write(png) != png.size()
+			|| !output.commit()) {
+			return;
+		}
+	}
+	GenerateDesktopFile(applications, { u"--"_q, u"%U"_q }, true, false, iconPath);
 }
 
 QString SingleInstanceLocalServerName(const QString &hash) {
@@ -669,6 +718,10 @@ bool SkipTaskbarSupported() {
 }
 
 QString ExecutablePathForShortcuts() {
+	const auto appImage = QFileInfo(qEnvironmentVariable("APPIMAGE"));
+	if (appImage.isAbsolute() && appImage.isExecutable()) {
+		return appImage.absoluteFilePath();
+	}
 	if (Core::UpdaterDisabled()) {
 		const auto &arguments = Core::Launcher::Instance().arguments();
 		if (!arguments.isEmpty()) {

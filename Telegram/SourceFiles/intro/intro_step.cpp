@@ -6,6 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "intro/intro_step.h"
+#include "ax/ui/appearance/glass_controls.h"
 
 #include "intro/intro_widget.h"
 #include "intro/intro_signup.h"
@@ -477,8 +478,10 @@ void Step::paintCover(QPainter &p, int top) {
 	st::introCoverRight.paint(p, width() - right - st::introCoverRight.width(), coverHeight - st::introCoverRight.height(), width());
 
 	auto planeTop = top + st::introCoverIconTop;
-	const auto axGramIcon = Ui::PixmapFromImage(AxAssets::currentAppLogo());
-	QIcon(axGramIcon).paint(&p, QRect(width() / 2 - axGramIcon.width() / 2, planeTop - 16, axGramIcon.width(), st::introCoverIcon.height()));
+	const auto axGramIcon = AxAssets::currentAppLogo();
+	const auto side = st::introCoverIcon.height();
+	const auto size = axGramIcon.size().scaled(side, side, Qt::KeepAspectRatio);
+	p.drawImage(QRect(QPoint((width() - size.width()) / 2, planeTop), size), axGramIcon);
 }
 
 int Step::contentLeft() const {
@@ -487,7 +490,8 @@ int Step::contentLeft() const {
 
 int Step::contentTop() const {
 	auto result = (height() - st::introHeight) / 2;
-	accumulate_max(result, st::introStepTopMin);
+	accumulate_max(result, AxGlass::Enabled()
+		? st::introGlassStepTopMin : st::introStepTopMin);
 	if (_hasCover) {
 		const auto currentHeightFull = result + st::introNextTop + st::introContentTopAdd;
 		auto added = 1. - std::clamp(

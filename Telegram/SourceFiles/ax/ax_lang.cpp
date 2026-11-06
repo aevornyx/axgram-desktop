@@ -14,6 +14,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QtCore/QJsonObject>
 
 // hard-coded languages
 std::map<QString, QString> langMapping = {
@@ -92,7 +93,21 @@ void AxLanguage::loadCachedLanguage() {
 		const auto doc = QJsonDocument::fromJson(data, &error);
 		if (error.error == QJsonParseError::NoError) {
 			LOG(("AxGram language loaded: %1 (%2)").arg(finalLangPackId).arg(path));
-			applyLanguageJson(doc);
+			auto current = doc.object();
+			if (!path.startsWith(u":/gui/"_q)) {
+				auto embeddedPath = qsl(":/gui/langs/ax/%1.json").arg(finalLangPackId);
+				if (!QFile::exists(embeddedPath)) {
+					embeddedPath = qsl(":/gui/langs/ax/%1.json").arg(langPackBaseId);
+				}
+				auto embedded = QFile(embeddedPath);
+				auto interfaceLabel = u"Standard Telegram interface"_q;
+				if (embedded.open(QIODevice::ReadOnly)) {
+					interfaceLabel = QJsonDocument::fromJson(embedded.readAll())
+						.object().value(u"GlassFolders"_q).toString(interfaceLabel);
+				}
+				current.insert(u"GlassFolders"_q, interfaceLabel);
+			}
+			applyLanguageJson(QJsonDocument(current));
 		}
 	}
 }

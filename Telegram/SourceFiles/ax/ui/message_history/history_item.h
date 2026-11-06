@@ -32,7 +32,8 @@ public:
 	OwnedItem(std::nullptr_t = nullptr);
 	OwnedItem(
 		not_null<HistoryView::ElementDelegate*> delegate,
-		not_null<HistoryItem*> data);
+		not_null<HistoryItem*> data,
+		AxMessageBase archive);
 	OwnedItem(const OwnedItem &other) = delete;
 	OwnedItem &operator=(const OwnedItem &other) = delete;
 	OwnedItem(OwnedItem &&other);
@@ -53,10 +54,12 @@ public:
 
 	void refreshView(not_null<HistoryView::ElementDelegate*> delegate);
 	void clearView();
+	[[nodiscard]] const AxMessageBase &archive() const { return _archive; }
 
 private:
 	HistoryItem *_data = nullptr;
 	std::unique_ptr<HistoryView::Element> _view;
+	AxMessageBase _archive;
 
 };
 

@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
+#include "ax/features/folders/folder_connection.h"
 #include "boxes/filters/edit_filter_box.h"
 #include "boxes/premium_limits_box.h"
 #include "boxes/premium_preview_box.h"
@@ -51,6 +52,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 #include "styles/style_stickers_box.h"
+#include <QtCore/QDateTime>
 
 namespace Settings {
 namespace {
@@ -111,6 +113,8 @@ private:
 struct FilterRow {
 	not_null<FilterRowButton*> button;
 	Data::ChatFilter filter;
+	Data::ChatFilter baseline;
+	QString uuid;
 	bool removed = false;
 	mtpRequestId removePeersRequestId = 0;
 	std::vector<not_null<PeerData*>> suggestRemovePeers;
@@ -372,7 +376,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 	const auto weak = base::make_weak(container);
 	const auto session = &controller->session();
 	const auto limit = [=] {
-		return Data::PremiumLimits(session).dialogFiltersCurrent();
+		return Data::PremiumLimits(session).dialogFiltersCurrent() + 20;
 	};
 
 	const auto find = [=](not_null<FilterRowButton*> button) {
@@ -501,7 +505,13 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				crl::guard(button, doneCallback),
 				crl::guard(button, saveAnd)));
 		});
-		state->rows.push_back({ button, filter });
+		const auto replica = session->data().chatsFilters().localReplica();
+		state->rows.push_back({
+			button,
+			filter,
+			filter,
+			replica ? replica->ids.key(filter.id()) : QString(),
+		});
 		state->count = state->rows.size();
 
 		const auto filters = &controller->session().data().chatsFilters();
@@ -599,9 +609,17 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 
 	const auto prepareGoodIdsForNewFilters = [=] {
 		const auto &list = session->data().chatsFilters().list();
+		auto serverCount = ranges::count_if(list, [](const auto &filter) {
+			return filter.id() > 0 && filter.id() < 1000;
+		});
+		const auto serverLimit = Data::PremiumLimits(session).dialogFiltersCurrent();
 
 		auto localId = 1;
 		const auto chooseNextId = [&] {
+			if (serverCount >= serverLimit) {
+				return -1;
+			}
+			++serverCount;
 			++localId;
 			while (ranges::contains(list, localId, &Data::ChatFilter::id)) {
 				++localId;
@@ -612,6 +630,8 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		for (auto &row : state->rows) {
 			const auto id = row.filter.id();
 			if (row.removed) {
+				continue;
+			} else if (id >= 1000) {
 				continue;
 			} else if (!id
 				|| !ranges::contains(list, id, &Data::ChatFilter::id)) {
@@ -624,6 +644,25 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 	state->save = [=](
 			const FilterRowButton *single,
 			Fn<void(Data::ChatFilter)> next) {
+		auto &realFilters = session->data().chatsFilters();
+		for (auto &row : state->rows) {
+			if (row.filter.id() < 1000) {
+				continue;
+			}
+			const auto rebased = realFilters.rebaseLocalEdit(
+				row.uuid,
+				row.baseline,
+				row.filter);
+			if (!rebased) {
+				if (row.button.get() == single) {
+					controller->showToast(u"Папка удалена или её изменения не удалось сохранить. Откройте актуальный список папок."_q);
+					return;
+				}
+				continue;
+			}
+			row.filter = *rebased;
+			row.button->updateData(*rebased);
+		}
 		auto ids = prepareGoodIdsForNewFilters();
 
 		auto updated = Data::ChatFilter();
@@ -634,10 +673,13 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		auto removeRequests = std::vector<MTPmessages_UpdateDialogFilter>();
 		auto removeChatlistRequests = std::vector<MTPchatlists_LeaveChatlist>();
 
-		auto &realFilters = session->data().chatsFilters();
 		const auto &list = realFilters.list();
 		order.reserve(state->rows.size());
 		for (auto &row : state->rows) {
+			if (row.filter.id() >= 1000
+				&& !realFilters.rebaseLocalEdit(row.uuid, row.baseline, row.filter)) {
+				continue;
+			}
 			if (row.button.get() == single) {
 				updated = row.filter;
 			}
@@ -648,15 +690,44 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				continue;
 			} else if (!removed && i != end(list) && *i == row.filter) {
 				order.push_back(id);
+				if (id >= 1000) {
+					row.baseline = row.filter;
+				}
 				continue;
 			}
 			const auto newId = ids.take(row.button).value_or(id);
+			if (newId == -1) {
+				const auto created = realFilters.createLocalFilter(row.filter);
+				if (!created) {
+					controller->showToast(u"Не удалось создать дополнительную папку. Проверьте её настройки и лимит 20 дополнительных папок."_q);
+					return;
+				}
+				row.filter = row.baseline = *created;
+				const auto replica = realFilters.localReplica();
+				row.uuid = replica ? replica->ids.key(created->id()) : QString();
+				row.button->updateData(*created);
+				order.push_back(created->id());
+				if (row.button.get() == single) {
+					updated = *created;
+				}
+				continue;
+			}
 			if (newId != id) {
 				row.filter = row.filter.withId(newId);
 				row.button->updateData(row.filter);
 				if (row.button.get() == single) {
 					updated = row.filter;
 				}
+			}
+			if (newId >= 1000) {
+				if (removed) {
+					realFilters.remove(newId);
+				} else {
+					realFilters.set(row.filter);
+					order.push_back(newId);
+					row.baseline = row.filter;
+				}
+				continue;
 			}
 			const auto tl = removed
 				? MTPDialogFilter()
@@ -781,7 +852,7 @@ void SetupRecommendedSection(
 		not_null<Ui::VerticalLayout*> filtersWrap) {
 	const auto session = &controller->session();
 	const auto limit = [=] {
-		return Data::PremiumLimits(session).dialogFiltersCurrent();
+		return Data::PremiumLimits(session).dialogFiltersCurrent() + 20;
 	};
 
 	const auto showLimitReached = [=] {
@@ -1107,6 +1178,136 @@ void BuildTagsSection(SectionBuilder &builder, not_null<FoldersState*> state) {
 	});
 }
 
+void LoadSyncDevices(
+		not_null<Ui::GenericBox*> box,
+		not_null<Main::Session*> session,
+		not_null<Ui::FlatLabel*> status,
+		not_null<Ui::VerticalLayout*> rows) {
+	if (box->property("axDevicesBusy").toBool()) return;
+	box->setProperty("axDevicesBusy", true);
+	const auto weak = base::make_weak(box);
+	const auto account = base::make_weak(session);
+	rows->clear();
+	status->setText(u"Загружаем устройства…"_q);
+	session->data().chatsFilters().localDevices([=](AxFolders::DevicesResult result) {
+		if (!weak || !account) return;
+		box->setProperty("axDevicesBusy", false);
+		rows->clear();
+		if (result.error != AxFolders::LoginError::None || !result.list) {
+			status->setText(u"Не удалось загрузить устройства. Проверьте подключение синхронизации и повторите попытку."_q);
+			return;
+		}
+		status->setText(u"Выберите устройство, чтобы отозвать его доступ к синхронизации. Сохранённые папки останутся на устройстве."_q);
+		for (const auto &device : result.list->devices) {
+			const auto self = device.id == result.list->current;
+			const auto title = self ? u"Это устройство · "_q + device.label : device.label;
+			const auto expiry = QDateTime::fromSecsSinceEpoch(device.expires).toLocalTime().toString(u"dd.MM.yyyy HH:mm"_q);
+			const auto row = AddButtonWithIcon(rows, rpl::single(title), st::settingsButtonNoIcon);
+			const auto subtitle = Ui::CreateChild<Ui::FlatLabel>(row.get(), u"Доступ до "_q + expiry, st::settingsFilterDividerLabel);
+			subtitle->setAttribute(Qt::WA_TransparentForMouseEvents);
+			const auto padding = st::settingsButtonNoIcon.padding;
+			row->setPaddingOverride(style::margins(padding.left(), padding.top(), padding.right(), padding.bottom() + st::normalFont->height + 4));
+			row->widthValue() | rpl::on_next([=](int width) {
+				subtitle->resizeToWidth(std::max(0, width - padding.left() - padding.right()));
+				subtitle->moveToLeft(padding.left(), padding.top() + st::normalFont->height + 4);
+			}, row->lifetime());
+			subtitle->show();
+			row->setEnabled(result.list->canManage || self);
+			row->setClickedCallback([=] {
+				if (!account) return;
+				box->uiShow()->show(Box([=](not_null<Ui::GenericBox*> confirm) {
+					confirm->setTitle(rpl::single(u"Отключить синхронизацию?"_q));
+					confirm->setWidth(st::boxWideWidth);
+					confirm->addRow(object_ptr<Ui::FlatLabel>(confirm.get(),
+						device.label + u" перестанет получать и отправлять изменения папок. Для нового подключения понадобится подтверждение Telegram."_q, st::boxLabel));
+					confirm->addButton(rpl::single(u"Отключить"_q), [=] {
+						confirm->closeBox();
+						if (!weak || !account) return;
+						if (box->property("axDevicesBusy").toBool()) return;
+						box->setProperty("axDevicesBusy", true);
+						rows->clear();
+						status->setText(u"Отключаем устройство…"_q);
+						session->data().chatsFilters().revokeLocalDevice(device.id, [=](AxFolders::LoginError error) {
+							if (!weak || !account) return;
+							box->setProperty("axDevicesBusy", false);
+							if (error != AxFolders::LoginError::None) {
+								status->setText(u"Не удалось отключить устройство. Обновите список и повторите попытку."_q);
+							} else if (self) {
+								status->setText(u"Синхронизация на этом устройстве отключена. Папки сохранены."_q);
+							} else {
+								LoadSyncDevices(box, session, status, rows);
+							}
+						});
+					}, st::attentionBoxButton);
+					confirm->addButton(tr::lng_cancel(), [=] { confirm->closeBox(); });
+				}));
+			});
+		}
+	});
+}
+
+void ShowSyncDevices(std::shared_ptr<Ui::Show> show, not_null<Main::Session*> session) {
+	show->show(Box([=](not_null<Ui::GenericBox*> box) {
+		box->setTitle(rpl::single(u"Устройства синхронизации"_q));
+		box->setWidth(st::boxWideWidth);
+		const auto status = box->addRow(object_ptr<Ui::FlatLabel>(box.get(), QString(), st::boxLabel));
+		const auto rows = box->addRow(object_ptr<Ui::VerticalLayout>(box.get()));
+		LoadSyncDevices(box, session, status, rows);
+		box->addButton(rpl::single(u"Обновить"_q), [=] { LoadSyncDevices(box, session, status, rows); });
+		box->addButton(tr::lng_close(), [=] { box->closeBox(); });
+	}));
+}
+
+void BuildSyncSection(SectionBuilder &builder) {
+	builder.add([](const WidgetContext &ctx) {
+		const auto controller = ctx.controller;
+		const auto filters = &controller->session().data().chatsFilters();
+		const auto weak = base::make_weak(&controller->session());
+		const auto row = AddButtonWithLabel(
+			ctx.container,
+			rpl::single(u"Синхронизация папок AxGram"_q),
+			filters->localConnectionText(),
+			st::settingsButton);
+		row->setClickedCallback([=] {
+			if (!weak) return;
+			controller->uiShow()->show(Box([=](not_null<Ui::GenericBox*> box) {
+				box->setTitle(rpl::single(u"Синхронизация папок"_q));
+				box->setWidth(st::boxWideWidth);
+				box->addRow(object_ptr<Ui::FlatLabel>(box.get(), filters->localConnectionText(), st::boxLabel));
+				box->addRow(object_ptr<Ui::FlatLabel>(box.get(),
+					u"Используйте один аккаунт Telegram на устройствах AxGram и подтвердите подключение в приложении. Общими станут названия, оформление, состав и порядок дополнительных папок. Сообщения и сессия Telegram в сервис не передаются. Сервис технически может прочитать настройки папок."_q,
+					st::boxLabel));
+				const auto controls = box->addRow(object_ptr<Ui::VerticalLayout>(box.get()));
+				const auto connect = AddButtonWithIcon(controls, rpl::single(u"Включить синхронизацию"_q), st::settingsButton);
+				const auto retry = AddButtonWithIcon(controls, filters->localConnectionText() | rpl::map([=](const QString &) {
+					return filters->localConnectionPhase() == AxFolders::ConnectionPhase::ConfirmationExpired
+						? u"Получить новое подтверждение"_q : u"Повторить подключение"_q;
+				}), st::settingsButton);
+				const auto cancel = AddButtonWithIcon(controls, rpl::single(u"Отменить подтверждение"_q), st::settingsButton);
+				const auto disconnect = AddButtonWithIcon(controls, rpl::single(u"Отключить на этом устройстве"_q), st::settingsButton);
+				const auto devices = AddButtonWithIcon(controls, rpl::single(u"Устройства синхронизации"_q), st::settingsButton);
+				devices->setClickedCallback([=] { if (weak) ShowSyncDevices(box->uiShow(), &controller->session()); });
+				connect->setClickedCallback([=] { if (weak) filters->connectLocalAccount(box->uiShow()); });
+				retry->setClickedCallback([=] { if (weak) filters->retryLocalSync(); });
+				cancel->setClickedCallback([=] { if (weak) filters->cancelLocalAccount(); });
+				disconnect->setClickedCallback([=] { if (weak) filters->disconnectLocalAccount(); });
+				filters->localConnectionText() | rpl::on_next([=](const QString &) {
+					using Phase = AxFolders::ConnectionPhase;
+					if (!weak) { box->closeBox(); return; }
+					const auto phase = filters->localConnectionPhase();
+					connect->setEnabled(phase == Phase::Off || phase == Phase::Failure || phase == Phase::NeedsLogin);
+					retry->setEnabled(phase == Phase::Failure || phase == Phase::Retrying || phase == Phase::ConfirmationExpired);
+					cancel->setEnabled(phase == Phase::Confirming || phase == Phase::Connecting);
+					disconnect->setEnabled(phase != Phase::Off);
+					devices->setEnabled(phase == Phase::Ready || phase == Phase::Syncing || phase == Phase::Retrying);
+				}, box->lifetime());
+				box->addButton(tr::lng_close(), [=] { box->closeBox(); });
+			}));
+		});
+		return SectionBuilder::WidgetToAdd{};
+	});
+}
+
 void BuildViewSection(SectionBuilder &builder) {
 	builder.add([](const WidgetContext &ctx) {
 		const auto controller = ctx.controller;
@@ -1254,6 +1455,7 @@ void Folders::setupContent() {
 
 		BuildTopContent(builder, std::move(showFinishedDup));
 		BuildFoldersListSection(builder, state.get());
+		BuildSyncSection(builder);
 		BuildTagsSection(builder, state.get());
 		BuildViewSection(builder);
 

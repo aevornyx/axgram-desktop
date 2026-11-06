@@ -637,6 +637,19 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 
 void BuildSpyEssentials(SectionBuilder &builder, AxSectionBuilder &ax) {
 	builder.addSubsectionTitle(tr::ax_SpyEssentialsHeader());
+	const auto limits = std::array{ 0, 512, 2048, 5120, 10240, -1 };
+	const auto selected = std::find(limits.begin(), limits.end(), AxSettings::getInstance().archiveMediaLimitMb());
+	ax.addChooseButton({
+		.id = u"ax/archiveMediaLimitMb"_q,
+		.title = rpl::single(u"Лимит медиаархива"_q),
+		.boxTitle = rpl::single(u"Место для сохранённых файлов"_q),
+		.initialSelection = selected == limits.end() ? 3 : int(selected - limits.begin()),
+		.options = { u"Только текст"_q, u"512 МБ"_q, u"2 ГБ"_q, u"5 ГБ"_q, u"10 ГБ"_q, u"Без ограничения"_q },
+		.setter = [=](int index) {
+			AxSettings::getInstance().setArchiveMediaLimitMb(limits[index]);
+		},
+	});
+	builder.addDividerText(rpl::single(u"Лимит общий для аккаунтов на этом компьютере. При его достижении новые файлы не копируются. Уже сохранённые файлы и текст сообщений не удаляются. Сохраняются только уже загруженные файлы — массовой загрузки чатов нет."_q));
 
 	ax.addSettingToggle({
 		.id = u"ax/saveDeletedMessages"_q,

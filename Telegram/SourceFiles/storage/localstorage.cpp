@@ -39,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AxGram includes
 #include "ax/ax_settings.h"
+#include "ax/ui/appearance/glass_defaults.h"
 
 
 //extern "C" {
@@ -362,6 +363,7 @@ void start() {
 
 	_basePath = cWorkingDir() + u"tdata/"_q;
 	if (!QDir().exists(_basePath)) QDir().mkpath(_basePath);
+	const auto freshProfile = AxGlass::IsFreshProfile(cWorkingDir());
 
 	ReadSettingsContext context;
 	FileReadDescriptor settingsData;
@@ -375,6 +377,9 @@ void start() {
 		applyReadContext(std::move(context));
 
 		_settingsRewriteNeeded = true;
+		if (freshProfile) {
+			Core::App().settings().writePref<bool>("ax/glassDefaultPending", true);
+		}
 		ApplyDefaultNightMode();
 		return;
 	}
@@ -1025,6 +1030,18 @@ Window::Theme::Saved readThemeUsingKey(FileKey key) {
 			object.cloud.settings = std::move(settings);
 		}
 	}
+	if (!object.cloud.id
+		&& (object.pathAbsolute == u":/gui/axgram-glass-dark.tdesktop-theme"_q
+			|| object.pathAbsolute == u":/gui/axgram-glass-light.tdesktop-theme"_q)) {
+		auto embedded = QFile(object.pathAbsolute);
+		if (embedded.open(QIODevice::ReadOnly)) {
+			const auto content = embedded.readAll();
+			if (!content.isEmpty() && object.content != content) {
+				object.content = content;
+				cache = Cached();
+			}
+		}
+	}
 	return result;
 }
 
@@ -1205,7 +1222,34 @@ Window::Theme::Saved readThemeAfterSwitch() {
 	const auto key = Window::Theme::IsNightMode()
 		? _themeKeyNight
 		: _themeKeyDay;
-	return readThemeUsingKey(key);
+	if (!key
+		&& Core::App().settings().readPref<bool>("ax/glassDefaultInitialized")
+		&& AxSettings::getInstance().glassFolders()) {
+		auto result = Window::Theme::Saved();
+		result.object.pathAbsolute = Window::Theme::IsNightMode()
+			? u":/gui/axgram-glass-dark.tdesktop-theme"_q
+			: u":/gui/axgram-glass-light.tdesktop-theme"_q;
+		auto embedded = QFile(result.object.pathAbsolute);
+		if (embedded.open(QIODevice::ReadOnly)) {
+			result.object.content = embedded.readAll();
+		}
+		return result;
+	}
+	auto result = readThemeUsingKey(key);
+	const auto bundledGlass = result.object.pathAbsolute
+		== u":/gui/axgram-glass-dark.tdesktop-theme"_q
+		|| result.object.pathAbsolute == u":/gui/axgram-glass-light.tdesktop-theme"_q;
+	if (!AxSettings::getInstance().glassFolders() && bundledGlass) {
+		result = Window::Theme::Saved();
+		if (Window::Theme::IsNightMode()) {
+			result.object.pathAbsolute = Window::Theme::NightThemePath();
+			auto embedded = QFile(result.object.pathAbsolute);
+			if (embedded.open(QIODevice::ReadOnly)) {
+				result.object.content = embedded.readAll();
+			}
+		}
+	}
+	return result;
 }
 
 void readLangPack() {

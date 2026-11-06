@@ -40,11 +40,13 @@ class PainterHighQualityEnabler;
 
 namespace Settings {
 
-void ShowRestartPrompt(not_null<Window::SessionController*> controller) {
+void ShowRestartPrompt(
+		not_null<Window::SessionController*> controller,
+		Fn<void()> restart) {
 	crl::on_main([=] {
 		controller->show(Ui::MakeConfirmBox({
 			.text = tr::lng_settings_need_restart(),
-			.confirmed = [] { Core::Restart(); },
+			.confirmed = restart ? restart : Fn<void()>(Core::Restart),
 			.confirmText = tr::lng_settings_restart_now(),
 			.cancelText = tr::lng_settings_restart_later(),
 		}));

@@ -911,6 +911,10 @@ topBarNameRightPadding: 3px;
 topBarClearButton: RoundButton(defaultLightButton) {
 	width: -18px;
 }
+topBarSelectionAction: RoundButton(defaultActiveButton) {
+	numbersTextFg: activeButtonFg;
+	numbersTextFgOver: activeButtonFgOver;
+}
 topBarSearch: IconButton {
 	width: 40px;
 	height: topBarHeight;

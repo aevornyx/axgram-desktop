@@ -12,7 +12,7 @@
 class IconPicker : public Ui::RpWidget
 {
 public:
-	IconPicker(QWidget *parent);
+	IconPicker(QWidget *parent, Fn<void()> onChanged = nullptr);
 	~IconPicker() = default;
 
 	static constexpr int kColumns = 4;
@@ -25,6 +25,7 @@ private:
 	void drawIcon(QPainter &p, const QImage &icon, int x, int y, float strokeOpacity);
 	[[nodiscard]] int cellWidth() const;
 
+	Fn<void()> _onChanged;
 	Ui::Animations::Simple _animation;
 	QString _wasSelected;
 	std::unordered_map<QString, QImage> _cachedIcons;

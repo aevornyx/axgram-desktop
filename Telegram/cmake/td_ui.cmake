@@ -13,6 +13,7 @@ include(cmake/generate_numbers.cmake)
 
 set(axgram_style_files
         ax/ui/ax_icons.style
+        ax/ui/appearance/glass_rail.style
         ax/ui/ax_styles.style
         ax/ui/settings/ax_settings.style
 )

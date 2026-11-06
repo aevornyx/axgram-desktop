@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_favorite.h"
 
+#include "ax/ax_settings.h"
+#include "ax/ui/appearance/glass_rail.h"
 #include "apiwrap.h"
 #include "base/options.h"
 #include "base/qthelp_url.h"
@@ -230,7 +232,7 @@ FolderFavoriteButton::FolderFavoriteButton(
 , _st(st)
 , _api(&controller->session().mtp())
 , _label(st.minTextWidth) {
-	setAttribute(Qt::WA_OpaquePaintEvent);
+	setAttribute(Qt::WA_OpaquePaintEvent, !AxSettings::getInstance().glassFolders());
 
 	setClickedCallback([=] { openLink(); });
 
@@ -266,14 +268,17 @@ int FolderFavoriteButton::resizeGetHeight(int newWidth) {
 	}
 	const auto text = std::min(
 		_label.countHeight(newWidth - _st.textSkip * 2),
-		_st.style.font->height * kMaxLabelLines);
+		_st.style.font->height
+			* (AxSettings::getInstance().glassFolders() ? 1 : kMaxLabelLines));
 	const auto add = text - _st.style.font->height;
 	return result + std::max(add, 0);
 }
 
 void FolderFavoriteButton::paintEvent(QPaintEvent *e) {
 	auto p = Painter(this);
-	p.fillRect(e->rect(), _st.textBg);
+	if (!AxSettings::getInstance().glassFolders()) {
+		p.fillRect(e->rect(), _st.textBg);
+	}
 
 	RippleButton::paintRipple(p, 0, 0);
 
@@ -289,12 +294,16 @@ void FolderFavoriteButton::paintEvent(QPaintEvent *e) {
 	}
 
 	if (mode != Mode::IconsOnly) {
-		p.setPen(_st.textFg);
+		p.setPen(AxSettings::getInstance().glassFolders()
+			? AxGlass::Colors(st::windowBg->c.lightnessF() < .5).muted
+			: _st.textFg->c);
 		_label.draw(p, {
 			.position = { _st.textSkip, _st.textTop },
 			.availableWidth = width() - 2 * _st.textSkip,
 			.align = style::al_top,
-			.elisionLines = kMaxLabelLines,
+			.elisionLines = AxSettings::getInstance().glassFolders()
+				? 1
+				: kMaxLabelLines,
 		});
 	}
 }

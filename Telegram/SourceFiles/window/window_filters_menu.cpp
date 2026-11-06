@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_menu.h"
 
+#include "ax/ui/appearance/glass_rail.h"
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -43,18 +44,22 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_media_prepare.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
+#include "styles/style_glass_rail.h"
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
 #include "styles/style_menu_icons.h"
 
 // AxGram includes
 #include "ax/ax_settings.h"
+#include "ax/features/folders/folder_access.h"
 #include <QtGui/QtEvents>
 // AyuGram includes
 
 
 namespace Window {
 namespace {
+
+constexpr auto kContourDuration = crl::time(340);
 
 // The folder tabs container, exposed as a list to screen readers.
 class TabListLayout final : public Ui::VerticalLayout {
@@ -131,22 +136,31 @@ void FiltersMenu::setup() {
 	_outer.paintRequest(
 	) | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(&_outer);
-		p.setPen(Qt::NoPen);
-		p.setBrush(st::windowFiltersButton.textBg);
-		p.drawRect(clip);
+		if (AxSettings::getInstance().glassFolders()) {
+			paintGlass(p);
+		} else {
+			p.fillRect(clip, st::windowFiltersButton.textBg);
+		}
 	}, _outer.lifetime());
 
 	_parent->heightValue(
-	) | rpl::on_next([=](int height) {
-		const auto width = st::windowFiltersWidth;
-		_outer.setGeometry({ 0, 0, width, height });
-		_menu.resizeToWidth(width);
-		_menu.move(0, 0);
-		_scroll.setGeometry(
-			{ 0, _menu.height(), width, height - _menu.height() });
-		_container->resizeToWidth(width);
-		_container->move(0, 0);
+	) | rpl::on_next([=](int) {
+		updateLayoutGeometry();
 	}, _outer.lifetime());
+
+	_scroll.scrolls() | rpl::on_next([=] {
+		_outer.update();
+	}, _outer.lifetime());
+	_container->heightValue() | rpl::on_next([=] {
+		updateContour(true);
+	}, _outer.lifetime());
+	style::PaletteChanged() | rpl::on_next([=] {
+		refreshAppearance();
+	}, _outer.lifetime());
+	AxSettings::getInstance().glassFoldersChanges() | rpl::on_next([=] {
+		refreshAppearance();
+	}, _outer.lifetime());
+	refreshAppearance();
 
 	auto premium = Data::AmPremiumValue(&_session->session());
 
@@ -178,6 +192,7 @@ void FiltersMenu::setup() {
 			scrollToButton(j->second);
 		}
 		_reorder->finishReordering();
+		_outer.update();
 	}, _outer.lifetime());
 
 	_menu.setClickedCallback([=] {
@@ -186,20 +201,146 @@ void FiltersMenu::setup() {
 
 	Core::App().settings().chatFiltersTabsModeValue(
 	) | rpl::skip(1) | rpl::on_next([=] {
-		if (!_list) {
-			return;
-		}
+		refreshAppearance();
+	}, _outer.lifetime());
+}
+
+void FiltersMenu::updateLayoutGeometry() {
+	const auto width = st::windowFiltersWidth;
+	const auto height = _parent->height();
+	_outer.setGeometry({ 0, 0, width, height });
+	_menu.resizeToWidth(width);
+	_menu.move(0, 0);
+	const auto top = _menu.height()
+		+ (AxSettings::getInstance().glassFolders() ? st::axGlassRailHeaderGap : 0);
+	_scroll.setGeometry({ 0, top, width, std::max(0, height - top) });
+	_container->resizeToWidth(width);
+	_container->move(0, 0);
+}
+
+void FiltersMenu::refreshAppearance() {
+	if (_rebuildingAppearance) {
+		return;
+	}
+	_rebuildingAppearance = true;
+	const auto oldTop = _scroll.scrollTop();
+	const auto glass = AxSettings::getInstance().glassFolders();
+	_menu.setBackgroundVisible(!glass);
+	const auto colors = AxGlass::Colors(st::windowBg->c.lightnessF() < .5);
+	_menu.setForegroundOverride(
+		glass ? std::make_optional(colors.muted) : std::nullopt,
+		glass ? std::make_optional(colors.accent) : std::nullopt);
+	if (!_menuHasUnread) {
+		const auto icon = glass ? &st::axGlassRailMenuIcon : nullptr;
+		_menu.setIconOverride(icon, icon);
+	}
+	if (_list) {
+		_setup = nullptr;
 		_setup = prepareButton(
 			_container,
 			-1,
-			{ TextWithEntities{ tr::lng_filters_setup(tr::now) } },
+			{ tr::lng_filters_setup(tr::now, tr::marked) },
 			Ui::FilterIcon::Edit);
 		if (_favorite) {
 			_favorite = nullptr;
 			updateFavorite();
 		}
 		refresh();
-	}, _outer.lifetime());
+	}
+	updateLayoutGeometry();
+	_scroll.scrollToY(oldTop);
+	_rebuildingAppearance = false;
+	updateContour(false);
+	_outer.update();
+}
+
+void FiltersMenu::updateContour(bool animated) {
+	if (_rebuildingAppearance) {
+		return;
+	}
+	if (!_setup || !AxSettings::getInstance().glassFolders()) {
+		_contourAnimation.stop();
+		_outer.update();
+		return;
+	}
+	const auto target = _setup->y() + _setup->height() + st::axGlassRailEdgeSkip;
+	if (_contourTarget == target) {
+		return;
+	}
+	const auto from = _contourAnimation.value(_contourTarget);
+	const auto initial = (_contourTarget == 0.);
+	_contourAnimation.stop();
+	_contourTarget = target;
+	if (initial || !animated || On(PowerSaving::kAnimations)) {
+		_outer.update();
+		return;
+	}
+	_contourAnimation.start(
+		[=] { _outer.update(); },
+		from,
+		target,
+		kContourDuration,
+		anim::sineInOut);
+}
+
+void FiltersMenu::paintGlass(QPainter &p) {
+	const auto colors = AxGlass::Colors(st::windowBg->c.lightnessF() < .5);
+	AxGlass::PaintRail(p, {
+		.width = float64(_outer.width()),
+		.height = float64(_outer.height()),
+		.header = float64(_menu.height()),
+		.edge = _scroll.y() + _contourAnimation.value(_contourTarget) - _scroll.scrollTop(),
+		.inset = float64(st::axGlassRailInset),
+		.neck = float64(st::axGlassRailNeck),
+		.depth = float64(st::axGlassRailDepth),
+		.stroke = float64(st::lineWidth),
+	}, colors);
+	const auto paintButton = [&](
+			not_null<Ui::RpWidget*> button,
+			bool active,
+			bool textOnly,
+			bool utility = false) {
+		const auto top = button->mapTo(&_outer, QPoint()).y();
+		const auto labeled = (button != &_menu && tabsMode() == Ui::ChatsFiltersTabsMode::TextAndIcons);
+		const auto size = labeled ? st::axGlassRailLabeledSize : st::axGlassRailButtonSize;
+		const auto fullRow = textOnly || (labeled && !utility);
+		const auto rect = fullRow
+			? QRectF(st::axGlassRailTextInset, top + st::axGlassRailButtonTop,
+				_outer.width() - 2 * st::axGlassRailTextInset, button->height() - 2 * st::axGlassRailButtonTop)
+			: QRectF((_outer.width() - size) / 2.,
+				top + (button->height() - size) / 2., size, size);
+		AxGlass::PaintButton(
+			p,
+			rect,
+			st::lineWidth,
+			colors,
+			active,
+			utility && !textOnly,
+			utility);
+	};
+	paintButton(&_menu, false, false);
+	p.save();
+	p.setClipRect(_scroll.geometry(), Qt::IntersectClip);
+	const auto textOnly = (tabsMode() == Ui::ChatsFiltersTabsMode::TextOnly);
+	for (const auto &[id, button] : _filters) {
+		paintButton(button.get(), id == _activeFilterId, textOnly);
+	}
+	if (_setup) {
+		paintButton(_setup.get(), false, textOnly, true);
+		if (tabsMode() == Ui::ChatsFiltersTabsMode::TextAndIcons) {
+			const auto top = _setup->mapTo(&_outer, QPoint()).y();
+			st::axGlassRailPlusIcon.paint(p, (_outer.width() - st::axGlassRailPlusIcon.width()) / 2,
+				top + (_setup->height() - st::axGlassRailPlusIcon.height()) / 2, _outer.width(), colors.muted);
+		}
+	}
+	if (_favorite && _favorite->height() > 0) {
+		p.save();
+		const auto origin = _favorite->mapTo(&_outer, QPoint());
+		p.setClipRect(QRect(origin, _favorite->size()), Qt::IntersectClip);
+		paintButton(_favorite->entity(), false, textOnly);
+		p.restore();
+	}
+	p.restore();
 }
 
 void FiltersMenu::setupDragAndDrop() {
@@ -241,7 +382,12 @@ void FiltersMenu::setupMainMenuIcon() {
 			icon = nullptr;
 		}
 
+		_menuHasUnread = (icon != nullptr);
+		if (!icon && settings.glassFolders()) {
+			icon = &st::axGlassRailMenuIcon;
+		}
 		_menu.setIconOverride(icon, icon);
+		_outer.update();
 	}, _outer.lifetime());
 }
 
@@ -363,15 +509,11 @@ void FiltersMenu::refresh() {
 	_reorder->cancel();
 
 	_reorder->clearPinnedIntervals();
-	const auto maxLimit = (reorderAll ? 1 : 0)
-		+ Data::PremiumLimits(&_session->session()).dialogFiltersCurrent();
-	const auto premiumFrom = (reorderAll ? 0 : 1) + maxLimit;
+	const auto serverLimit
+		= Data::PremiumLimits(&_session->session()).dialogFiltersCurrent();
 	if (!reorderAll && !settings.hideAllChatsFolder()) {
 		_reorder->addPinnedInterval(0, 1);
 	}
-	_reorder->addPinnedInterval(
-		premiumFrom,
-		std::max(1, int(filters->list().size()) - maxLimit));
 
 	// Remember which folder holds keyboard focus so the roving Tab-stop can be
 	// re-established on its replacement after the rebuild: the new buttons are
@@ -388,7 +530,11 @@ void FiltersMenu::refresh() {
 	auto now = base::flat_map<int, base::unique_qptr<Ui::SideBarButton>>();
 	const auto &currentFilter = _session->activeChatsFilterCurrent();
 	for (const auto &filter : filters->list()) {
-		const auto nextIsLocked = (now.size() >= premiumFrom);
+		const auto nextIsLocked = AxFolders::IsPremiumLocked(
+			filters->list(), filter.id(), serverLimit);
+		if (nextIsLocked) {
+			_reorder->addPinnedInterval(int(now.size()), 1);
+		}
 		if (nextIsLocked && (currentFilter == filter.id())) {
 			_session->setActiveChatsFilter(FilterId(0));
 		}
@@ -426,6 +572,7 @@ void FiltersMenu::refresh() {
 	_reorder->start();
 
 	_container->resizeToWidth(_outer.width());
+	updateContour(true);
 
 	// After the filters are refreshed, the scroll is reset,
 	// so we have to restore it.
@@ -542,6 +689,13 @@ Ui::ChatsFiltersTabsMode FiltersMenu::tabsMode() const {
 
 const style::SideBarButton &FiltersMenu::buttonStyle() const {
 	using Mode = Ui::ChatsFiltersTabsMode;
+	if (AxSettings::getInstance().glassFolders()) {
+		switch (tabsMode()) {
+		case Mode::TextOnly: return st::axGlassFilterButtonTextOnly;
+		case Mode::TextAndIcons: return st::axGlassFilterButton;
+		case Mode::IconsOnly: return st::axGlassFilterButtonIconsOnly;
+		}
+	}
 	switch (tabsMode()) {
 	case Mode::TextOnly: return st::windowFiltersButtonTextOnly;
 	case Mode::TextAndIcons: return st::windowFiltersButton;
@@ -588,22 +742,50 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 			.customEmojiLoopLimit = isStatic ? -1 : 0,
 		}),
 		paused);
+	const auto glass = AxSettings::getInstance().glassFolders();
+	prepared->setBackgroundVisible(!glass);
+	if (glass) {
+		prepared->setMaximumLabelLines(1);
+		const auto colors = AxGlass::Colors(st::windowBg->c.lightnessF() < .5);
+		prepared->setForegroundOverride(colors.muted, colors.accent);
+	}
 	prepared->setLocked(locked);
 	prepared->setIsListItem(listItem);
 	prepared->setShowIcon(mode != Ui::ChatsFiltersTabsMode::TextOnly);
-	prepared->setShowText(mode != Ui::ChatsFiltersTabsMode::IconsOnly);
+	prepared->setShowText(
+		mode != Ui::ChatsFiltersTabsMode::IconsOnly
+			&& (!glass || id >= 0 || mode == Ui::ChatsFiltersTabsMode::TextOnly));
+	if (glass && id < 0 && mode == Ui::ChatsFiltersTabsMode::TextAndIcons) {
+		prepared->setShowIcon(false);
+	}
+	const auto margin = (glass && id < 0)
+		? style::margins(0, st::axGlassRailUtilityGap, 0, st::axGlassRailDepth)
+		: style::margins();
 	auto added = toBeginning
-		? container->insert(0, std::move(prepared))
-		: container->add(std::move(prepared));
+		? container->insert(0, std::move(prepared), margin)
+		: container->add(std::move(prepared), margin);
 	auto button = base::unique_qptr<Ui::SideBarButton>(std::move(added));
 	const auto raw = button.get();
 	const auto nameText = id
 		? title.text.text
 		: tr::lng_filters_all(tr::now);
+	if (glass) {
+		const auto tooltip = (id < 0)
+			? tr::lng_filters_setup_menu(tr::now)
+			: nameText;
+		raw->setToolTip(tooltip);
+		if (id < 0) {
+			raw->setAccessibleName(tooltip);
+		}
+	}
 	const auto &icons = Ui::LookupFilterIcon(id
 		? icon
 		: Ui::FilterIcon::All);
-	raw->setIconOverride(icons.normal, icons.active);
+	if (glass && id < 0) {
+		raw->setIconOverride(&st::axGlassRailPlusIcon, &st::axGlassRailPlusIcon);
+	} else {
+		raw->setIconOverride(icons.normal, icons.active);
+	}
 	if (id >= 0) {
 		if (locked) {
 			// Surface a locked folder's premium-gated status and what pressing

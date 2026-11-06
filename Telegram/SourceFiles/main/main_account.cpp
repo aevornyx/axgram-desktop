@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/serialize_peer.h"
 #include "storage/localstorage.h"
 #include "data/data_session.h"
+#include "data/data_chat_filters.h"
 #include "data/data_user.h"
 #include "data/data_changes.h"
 #include "window/window_controller.h"
@@ -543,6 +544,9 @@ void Account::forcedLogOut() {
 
 void Account::loggedOut() {
 	_loggingOut = false;
+	if (const auto active = maybeSession()) {
+		active->data().chatsFilters().disconnectLocalAccount();
+	}
 	Media::Player::mixer()->stopAndClear();
 	destroySession(DestroyReason::LoggedOut);
 	local().reset();

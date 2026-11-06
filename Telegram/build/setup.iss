@@ -1,9 +1,17 @@
-#define MyAppShortName "AyuGram"
-#define MyAppName "AyuGram Desktop"
-#define MyAppPublisher "Radolyn Labs"
-#define MyAppURL "https://github.com/AyuGram"
-#define MyAppExeName "AyuGram.exe"
-#define MyAppId "53F49750-6209-4FBF-9CA8-7A333C87D666"
+#define MyAppShortName "AxGram"
+#define MyAppName "AxGram Desktop"
+#define MyAppPublisher "AxGram"
+#define MyAppURL "https://github.com/aevornyx/axgram-desktop"
+#define MyAppExeName "AxGram.exe"
+#define MyAppId "12FFD268-D3BF-43EB-8CC0-4CA437920205"
+#ifdef DebugBuild
+  #undef MyAppShortName
+  #undef MyAppName
+  #undef MyAppId
+  #define MyAppShortName "AxGram Debug"
+  #define MyAppName "AxGram Desktop Debug"
+  #define MyAppId "9F30F3DD-765A-4BCB-B813-CE6E6585912E"
+#endif
 #define CurrentYear GetDateTimeString('yyyy','','')
 
 [Setup]
@@ -13,7 +21,7 @@
 AppId={{{#MyAppId}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppCopyright={#MyAppPublisher} 2014-{#CurrentYear}
+AppCopyright={#MyAppPublisher} {#CurrentYear}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -24,17 +32,20 @@ AllowNoIcons=yes
 OutputDir={#ReleasePath}
 SetupIconFile={#SourcePath}..\Resources\art\icon256.ico
 UninstallDisplayName={#MyAppName}
-UninstallDisplayIcon={app}\Telegram.exe
+UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma
 SolidCompression=yes
 DisableStartupPrompt=yes
 PrivilegesRequired=lowest
 VersionInfoVersion={#MyAppVersion}.0
-CloseApplications=force
+CloseApplications=yes
+RestartApplications=no
 DisableDirPage=no
 DisableProgramGroupPage=no
 WizardStyle=modern
+#ifndef UnsignedBuild
 SignTool=sha256
+#endif
 
 #if MyBuildTarget == "winarm"
   ArchitecturesAllowed="arm64"
@@ -44,13 +55,17 @@ SignTool=sha256
 #elif MyBuildTarget == "win64"
   ArchitecturesAllowed="x64compatible"
   ArchitecturesInstallIn64BitMode="x64compatible"
-  OutputBaseFilename=ayusetup-x64.{#MyAppVersionFull}
+  OutputBaseFilename=tsetup-x64.{#MyAppVersionFull}
   #define ArchModulesFolder "x64"
   AppVerName={#MyAppName} {#MyAppVersion} 64bit
 #else
-  OutputBaseFilename=ayusetup.{#MyAppVersionFull}
+  OutputBaseFilename=tsetup.{#MyAppVersionFull}
   #define ArchModulesFolder "x86"
   AppVerName={#MyAppName} {#MyAppVersion} 32bit
+#endif
+
+#ifdef SetupFileName
+  OutputBaseFilename={#SetupFileName}
 #endif
 
 #define ModulesFolder "modules\" + ArchModulesFolder
@@ -70,12 +85,22 @@ Name: "ua";      MessagesFile: "compiler:Languages\Ukrainian.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "{#ReleasePath}\Telegram.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\LICENSE"; DestDir: "{app}\licenses"; DestName: "GPL-3.0.txt"; Flags: ignoreversion
+Source: "..\..\NOTICE.md"; DestDir: "{app}\licenses"; DestName: "AxGram-NOTICE.md"; Flags: ignoreversion
+Source: "..\SourceFiles\ax\libs\sqlite\SQLCIPHER-LICENSE.md"; DestDir: "{app}\licenses"; Flags: ignoreversion
+Source: "{#ReleasePath}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+#ifndef WithoutUpdater
 Source: "{#ReleasePath}\Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
-#if MyBuildTarget != "winarm"
+#endif
+#if MyBuildTarget != "winarm" && (!Defined(DebugBuild) || FileExists(ReleasePath + "\" + ModulesFolder + "\d3d\d3dcompiler_47.dll"))
 Source: "{#ReleasePath}\{#ModulesFolder}\d3d\d3dcompiler_47.dll"; DestDir: "{app}\{#ModulesFolder}\d3d"; Flags: ignoreversion
 #endif
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+
+#ifdef DebugBuild
+[Dirs]
+Name: "{app}\TelegramForcePortable"; Flags: uninsneveruninstall
+#endif
 
 [Icons]
 Name: "{group}\{#MyAppShortName}"; Filename: "{app}\{#MyAppExeName}"
@@ -85,38 +110,112 @@ Name: "{userdesktop}\{#MyAppShortName}"; Filename: "{app}\{#MyAppExeName}"; Task
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppShortName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
+[CustomMessages]
+RemoveProfile=Also delete AxGram accounts, settings, message archive and cached media?%n%nChoose No to keep your data for reinstallation.
+CloseAppFailed=AxGram files are still in use. Close this copy of AxGram and run the uninstaller again. No files have been removed.
+ru.CloseAppFailed=Файлы AxGram всё ещё заняты. Закройте эту копию AxGram и снова запустите удаление. Файлы приложения не удалены.
+ProfileCleanupFailed=Some AxGram profile files could not be deleted. Close programs using this folder and remove the remaining profile files manually: %1
+ru.ProfileCleanupFailed=Не удалось удалить часть данных AxGram. Закройте программы, использующие эту папку, и удалите оставшиеся файлы профиля вручную: %1
+ru.RemoveProfile=Удалить также аккаунты AxGram, настройки, архив сообщений и кэш медиа?%n%nВыберите «Нет», чтобы сохранить данные для повторной установки.
+
 [UninstallDelete]
-Type: files; Name: "{app}\data"
-Type: files; Name: "{app}\data_config"
 Type: files; Name: "{app}\log.txt"
 Type: filesandordirs; Name: "{app}\DebugLogs"
 Type: filesandordirs; Name: "{app}\tupdates"
-Type: filesandordirs; Name: "{app}\tdata"
-Type: filesandordirs; Name: "{app}\tcache"
 Type: filesandordirs; Name: "{app}\tdumps"
-Type: filesandordirs; Name: "{app}\modules"
+#ifdef DebugBuild
+Type: dirifempty; Name: "{app}\TelegramForcePortable"
+#endif
 Type: dirifempty; Name: "{app}"
-Type: files; Name: "{userappdata}\{#MyAppName}\data"
-Type: files; Name: "{userappdata}\{#MyAppName}\data_config"
-Type: files; Name: "{userappdata}\{#MyAppName}\log.txt"
-Type: filesandordirs; Name: "{userappdata}\{#MyAppName}\DebugLogs"
-Type: filesandordirs; Name: "{userappdata}\{#MyAppName}\tupdates"
-Type: filesandordirs; Name: "{userappdata}\{#MyAppName}\tdata"
-Type: filesandordirs; Name: "{userappdata}\{#MyAppName}\tcache"
-Type: filesandordirs; Name: "{userappdata}\{#MyAppName}\tdumps"
-Type: filesandordirs; Name: "{userappdata}\{#MyAppName}\modules"
-Type: dirifempty; Name: "{userappdata}\{#MyAppName}"
 
 [Code]
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-var ResultCode: Integer;
+var RemoveProfile: Boolean;
+
+function ApplicationFilesAvailable: Boolean;
+var Stream: TFileStream;
 begin
-  if CurUninstallStep = usUninstall then
-  begin
-    Exec(ExpandConstant('{app}\{#MyAppExeName}'), '-cleanup', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := not FileExists(ExpandConstant('{app}\{#MyAppExeName}'));
+  if Result then Exit;
+  try
+    Stream := TFileStream.Create(ExpandConstant('{app}\{#MyAppExeName}'), fmOpenReadWrite or fmShareExclusive);
+    try
+      Result := True;
+    finally
+      Stream.Free;
+    end;
+  except
+    Result := False;
   end;
 end;
 
+function CloseApplicationForUninstall: Boolean;
+var ResultCode, Attempt: Integer;
+begin
+  Result := ApplicationFilesAvailable;
+  if Result then Exit;
+  Log('Requesting graceful exit from the installed AxGram executable.');
+  if not Exec(ExpandConstant('{app}\{#MyAppExeName}'), '-noupdate -quit', ExpandConstant('{app}'), SW_HIDE, ewNoWait, ResultCode) then
+    Log('Could not start the exit request: ' + SysErrorMessage(ResultCode));
+  for Attempt := 1 to 150 do
+  begin
+    Sleep(100);
+    Result := ApplicationFilesAvailable;
+    if Result then Exit;
+  end;
+  Log(CustomMessage('CloseAppFailed'));
+end;
+
+function InitializeUninstall: Boolean;
+begin
+  RemoveProfile := False;
+  if not UninstallSilent then
+    RemoveProfile := MsgBox(CustomMessage('RemoveProfile'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = idYes;
+  Result := CloseApplicationForUninstall;
+  if not Result and not UninstallSilent then
+    MsgBox(CustomMessage('CloseAppFailed'), mbError, MB_OK);
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+#ifndef DebugBuild
+  ResultCode: Integer;
+#endif
+  CleanupSucceeded: Boolean;
+  ProfileFolder: String;
+begin
+#ifndef DebugBuild
+  if CurUninstallStep = usUninstall then
+    Exec(ExpandConstant('{app}\{#MyAppExeName}'), '-cleanup', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+#endif
+  if (CurUninstallStep = usPostUninstall) and RemoveProfile then
+  begin
+    CleanupSucceeded := True;
+    if not DeleteFile(ExpandConstant('{app}\data')) and FileExists(ExpandConstant('{app}\data')) then
+      CleanupSucceeded := False;
+    if not DeleteFile(ExpandConstant('{app}\data_config')) and FileExists(ExpandConstant('{app}\data_config')) then
+      CleanupSucceeded := False;
+    if not DelTree(ExpandConstant('{app}\tdata'), True, True, True) and DirExists(ExpandConstant('{app}\tdata')) then
+      CleanupSucceeded := False;
+    if not DelTree(ExpandConstant('{app}\tcache'), True, True, True) and DirExists(ExpandConstant('{app}\tcache')) then
+      CleanupSucceeded := False;
+    ProfileFolder := ExpandConstant('{app}\TelegramForcePortable');
+    if not DelTree(ProfileFolder, True, True, True) and DirExists(ProfileFolder) then
+      CleanupSucceeded := False;
+    if not CleanupSucceeded then
+    begin
+      Log('AxGram profile cleanup incomplete.');
+      if not UninstallSilent then
+        MsgBox(FmtMessage(CustomMessage('ProfileCleanupFailed'), [ProfileFolder]), mbError, MB_OK);
+    end;
+  end;
+  if CurUninstallStep = usPostUninstall then
+  begin
+    RemoveDir(ExpandConstant('{app}\TelegramForcePortable'));
+    RemoveDir(ExpandConstant('{app}'));
+  end;
+end;
+
+#ifndef DebugBuild
 const CSIDL_DESKTOPDIRECTORY = $0010;
       CSIDL_COMMON_DESKTOPDIRECTORY = $0019;
 
@@ -146,3 +245,4 @@ begin
     end;
   end;
 end;
+#endif

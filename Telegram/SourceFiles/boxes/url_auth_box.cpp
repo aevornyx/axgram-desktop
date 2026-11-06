@@ -31,10 +31,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/toast/toast.h"
 #include "ui/widgets/menu/menu_action.h"
+#include "ui/widgets/labels.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/shadow.h"
+#include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 #include "styles/style_userpic_button.h"
 #include "styles/style_window.h"
+
+#include <QtCore/QUrl>
 
 namespace UrlAuthBox {
 namespace {
@@ -213,7 +218,57 @@ void RequestUrl(
 	const MTPDurlAuthResultRequest &request,
 	not_null<Main::Session*> session,
 	const QString &url,
-	QVariant context);
+	QVariant context,
+	std::shared_ptr<ServiceCallbacks> service = nullptr);
+
+void ActivateService(
+		std::shared_ptr<Ui::Show> show,
+		not_null<Main::Session*> session,
+		const QString &url,
+		std::shared_ptr<ServiceCallbacks> callbacks) {
+	if (!callbacks || !callbacks->active()) return;
+	if (callbacks->account != session->userId().bare) {
+		callbacks->failed(); return;
+	}
+	const auto origin = QUrl(callbacks->origin, QUrl::StrictMode);
+	if (!origin.isValid() || origin.scheme() != u"https"_q
+		|| origin.authority().isEmpty() || !origin.path().isEmpty()
+		|| !origin.userInfo().isEmpty() || origin.hasQuery() || origin.hasFragment()
+		|| origin.toString(QUrl::FullyEncoded) != callbacks->origin) {
+		callbacks->failed(); return;
+	}
+	using Flag = MTPmessages_RequestUrlAuth::Flag;
+	const auto weak = base::make_weak(session);
+	const auto id = session->api().request(MTPmessages_RequestUrlAuth(
+		MTP_flags(Flag::f_url | Flag::f_in_app_origin), MTPInputPeer(), MTPint(), MTPint(),
+		MTP_string(url), MTP_string(callbacks->origin)
+	)).done([=](const MTPUrlAuthResult &result) {
+		if (!weak || !callbacks->active()) return;
+		result.match([&](const MTPDurlAuthResultAccepted &data) {
+			callbacks->accepted(qs(data.vurl().value_or_empty()));
+		}, [&](const MTPDurlAuthResultRequest &data) {
+			const auto bot = session->data().processUser(data.vbot());
+			const auto hint = data.vuser_id_hint()
+				? peerToUser(peerFromUser(*data.vuser_id_hint())).bare : 0;
+			if (data.is_request_write_access() || data.is_request_phone_number()
+				|| QString::number(peerToUser(bot->id).bare) != callbacks->clientId
+				|| (hint && hint != callbacks->account)) {
+				callbacks->failed(); return;
+			}
+			RequestUrl(show, data, session, url, {}, callbacks);
+		}, [&](const MTPDurlAuthResultDefault &) {
+			callbacks->failed();
+		});
+	}).fail([=](const MTP::Error &error) {
+		if (weak && callbacks->active()) {
+			if (error.type() == u"URL_EXPIRED"_q && callbacks->expired) callbacks->expired();
+			else callbacks->failed();
+		}
+	}).handleAllErrors().send();
+	callbacks->bindClose([weak, id] {
+		if (weak) weak->api().request(id).cancel();
+	});
+}
 
 void ActivateButton(
 		std::shared_ptr<Ui::Show> show,
@@ -416,7 +471,9 @@ void RequestUrl(
 		const MTPDurlAuthResultRequest &request,
 		not_null<Main::Session*> session,
 		const QString &url,
-		QVariant context) {
+		QVariant context,
+		std::shared_ptr<ServiceCallbacks> service) {
+	if (service && !service->active()) return;
 	struct State {
 		base::weak_qptr<Ui::BoxContent> box;
 		AnotherSessionFactory anotherSession = nullptr;
@@ -449,6 +506,16 @@ void RequestUrl(
 	}();
 	const auto state = std::make_shared<State>();
 	const auto finishWithUrl = [=](const QString &to, bool accepted) {
+		if (service) {
+			state->boxDeclineLifetime.destroy();
+			state->matchCodesBoxDeclineLifetime.destroy();
+			if (state->box) state->box->closeBox();
+			if (service->active()) {
+				if (accepted) service->accepted(to);
+				else service->cancelled();
+			}
+			return;
+		}
 		if (state->box) {
 			state->box->closeBox();
 		}
@@ -462,11 +529,14 @@ void RequestUrl(
 		return state->anotherSession ? state->anotherSession() : session;
 	};
 	const auto requestDecline = [=] {
+		if (service && !service->active()) return;
 		resolveSession()->api().request(MTPmessages_DeclineUrlAuth(
 			MTP_string(url)
 		)).send();
+		if (service && service->active()) service->cancelled();
 	};
 	const auto sendRequest = [=](Result result) {
+		if (service && !service->active()) return;
 		if (!result.auth) {
 			requestDecline();
 			finishWithUrl(url, false);
@@ -477,7 +547,7 @@ void RequestUrl(
 				| (result.allowWrite ? Flag::f_write_allowed : Flag(0))
 				| (sharePhone ? Flag::f_share_phone_number : Flag(0))
 				| (result.matchCode.isEmpty() ? Flag(0) : Flag::f_match_code);
-			resolveSession()->api().request(MTPmessages_AcceptUrlAuth(
+			auto acceptRequest = resolveSession()->api().request(MTPmessages_AcceptUrlAuth(
 				MTP_flags(flags),
 				MTPInputPeer(),
 				MTPint(), // msg_id
@@ -486,7 +556,10 @@ void RequestUrl(
 				result.matchCode.isEmpty()
 					? MTPstring()
 					: MTP_string(result.matchCode)
-			)).done([=](const MTPUrlAuthResult &result) {
+			));
+			if (service) acceptRequest.handleAllErrors();
+			acceptRequest.done([=](const MTPUrlAuthResult &result) {
+				if (service && !service->active()) return;
 				const auto accepted = result.match(
 				[](const MTPDurlAuthResultAccepted &data) {
 					return true;
@@ -503,7 +576,12 @@ void RequestUrl(
 						"got urlAuthResultRequest after acceptUrlAuth."));
 					return url;
 				});
+				if (service && !accepted) {
+					if (service->active()) service->failed();
+					return;
+				}
 				finishWithUrl(to, accepted);
+				if (service) return;
 				const auto domainWrapped = isApp
 					? tr::bold(domain)
 					: tr::link(domain);
@@ -518,7 +596,14 @@ void RequestUrl(
 							tr::marked),
 					.duration = crl::time(4000),
 				});
-			}).fail([=] {
+			}).fail([=](const MTP::Error &error) {
+				if (service) {
+					if (service->active()) {
+						if (error.type() == u"URL_EXPIRED"_q && service->expired) service->expired();
+						else service->failed();
+					}
+					return;
+				}
 				const auto domainWrapped = isApp
 					? tr::bold(domain)
 					: tr::link(domain);
@@ -540,7 +625,12 @@ void RequestUrl(
 	const auto ip = qs(request.vip().value_or("Unknown IP"));
 	const auto region = qs(request.vregion().value_or("Unknown region"));
 	const auto showAuthBox = [=] {
+		if (service && !service->active()) return;
 		state->box = show->show(Box([=](not_null<Ui::GenericBox*> box) {
+			if (service) {
+				box->addRow(object_ptr<Ui::FlatLabel>(box.get(),
+					u"Аккаунт: "_q + session->user()->name(), st::boxLabel));
+			}
 			const auto accountResult = box->lifetime().make_state<
 				SwitchAccountResult>(nullptr);
 			const auto matchCodesShared = box->lifetime().make_state<
@@ -639,16 +729,22 @@ void RequestUrl(
 					: matchCodesShared->value()),
 				isApp);
 
-			*accountResult = AddAccountsMenu(
-				box->verticalLayout(),
-				userIdHint);
-			box->verticalLayout()->widthValue(
-			) | rpl::on_next([=, w = (*accountResult).widget] {
-				w->moveToRight(st::lineWidth * 4, 0);
-			}, (*accountResult).widget->lifetime());
-			state->anotherSession = (*accountResult).anotherSession;
-			(*accountResult).setOnUserChanged(reloadRequest);
-		}));
+			if (!service) {
+				*accountResult = AddAccountsMenu(
+					box->verticalLayout(),
+					userIdHint);
+				box->verticalLayout()->widthValue(
+				) | rpl::on_next([=, w = (*accountResult).widget] {
+					w->moveToRight(st::lineWidth * 4, 0);
+				}, (*accountResult).widget->lifetime());
+				state->anotherSession = (*accountResult).anotherSession;
+				(*accountResult).setOnUserChanged(reloadRequest);
+			}
+		}), service ? Ui::LayerOption::KeepOther : Ui::LayerOption::CloseOther);
+		if (service) service->bindClose([state] {
+			state->boxDeclineLifetime.destroy();
+			if (state->box) state->box->closeBox();
+		});
 		state->box->boxClosing() | rpl::on_next([=] {
 			requestDecline();
 		}, state->boxDeclineLifetime);
@@ -668,13 +764,16 @@ void RequestUrl(
 				domain,
 				matchCodes,
 				[=](QString matchCode) {
+					if (service && !service->active()) return;
 					state->matchCodesBoxDeclineLifetime.destroy();
 					resolveSession()->api().request(
 						MTPmessages_CheckUrlAuthMatchCode(
 							MTP_string(url),
 							MTP_string(matchCode))
 					).done([=](const MTPBool &result) {
+						if (service && !service->active()) return;
 						if (!mtpIsTrue(result)) {
+							if (service) { service->failed(); return; }
 							show->showToast(
 								tr::lng_url_auth_phone_toast_bad_expired(
 									tr::now));
@@ -683,6 +782,13 @@ void RequestUrl(
 						state->firstMatchCode = std::move(matchCode);
 						showAuthBox();
 					}).fail([=](const MTP::Error &error) {
+						if (service) {
+							if (service->active()) {
+								if (error.type() == u"URL_EXPIRED"_q && service->expired) service->expired();
+								else service->failed();
+							}
+							return;
+						}
 						show->showToast((error.type() == u"URL_EXPIRED"_q)
 							? tr::lng_url_auth_phone_toast_bad_expired(
 								tr::now)
@@ -692,6 +798,10 @@ void RequestUrl(
 				isApp);
 		}),
 		Ui::LayerOption::KeepOther);
+	if (service) service->bindClose([state, matchCodesBox] {
+		state->matchCodesBoxDeclineLifetime.destroy();
+		if (matchCodesBox) matchCodesBox->closeBox();
+	});
 	matchCodesBox->boxClosing() | rpl::on_next([=] {
 		requestDecline();
 	}, state->matchCodesBoxDeclineLifetime);

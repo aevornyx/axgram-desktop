@@ -1720,6 +1720,10 @@ void DeleteChatBox(not_null<Ui::GenericBox*> box, not_null<PeerData*> peer) {
 				if (result == filter) {
 					continue;
 				}
+				if (filter.id() >= 1000) {
+					peer->owner().chatsFilters().set(result);
+					continue;
+				}
 				const auto tl = result.tl();
 				peer->owner().chatsFilters().apply(MTP_updateDialogFilter(
 					MTP_flags(MTPDupdateDialogFilter::Flag::f_filter),

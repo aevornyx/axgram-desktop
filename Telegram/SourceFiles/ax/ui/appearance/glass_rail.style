@@ -1,0 +1,54 @@
+using "window/window.style";
+using "dialogs/dialogs.style";
+
+axGlassRailInset: 6px;
+axGlassRailNeck: 8px;
+axGlassRailHeaderGap: 12px;
+axGlassRailDepth: 82px;
+axGlassRailEdgeSkip: 8px;
+axGlassRailButtonSize: 42px;
+axGlassRailLabeledSize: 34px;
+axGlassRailLabeledCenter: 20px;
+axGlassRailButtonTop: 2px;
+axGlassRailUtilityGap: 6px;
+axGlassRailTextInset: 8px;
+axGlassDialogInset: 6px;
+axGlassDialogVerticalInset: 3px;
+axGlassDialogRadius: 14px;
+
+axGlassFilterButton: SideBarButton(windowFiltersButton) {
+	textBg: transparent;
+	textBgActive: transparent;
+	minHeight: 54px;
+	textTop: 37px;
+	textSkip: 8px;
+	iconPosition: point(-1px, 4px);
+}
+axGlassFilterButtonIconsOnly: SideBarButton(windowFiltersButtonIconsOnly) {
+	textBg: transparent;
+	textBgActive: transparent;
+	minHeight: 48px;
+}
+axGlassFilterButtonTextOnly: SideBarButton(windowFiltersButtonTextOnly) {
+	textBg: transparent;
+	textBgActive: transparent;
+}
+
+axGlassRailMenuIcon: icon {{ "ax/useanimations/menu", sideBarIconFg }};
+axGlassRailPlusIcon: icon {{ "ax/useanimations/plus", sideBarIconFg }};
+
+axGlassDialogsFilter: InputField(dialogsFilter) {
+	border: 2px;
+	borderActive: 2px;
+	borderRadius: 16px;
+	borderFg: windowBgRipple;
+	borderFgActive: activeLineFg;
+}
+
+axGlassControlInset: 8px;
+axGlassControlVerticalInset: 2px;
+axGlassControlRadius: 12px;
+axGlassIconRadius: 7px;
+axGlassMenuInset: 6px;
+axGlassMenuVerticalInset: 2px;
+axGlassMenuRadius: 9px;

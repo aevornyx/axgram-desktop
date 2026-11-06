@@ -7,6 +7,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_layout.h"
 
+#include "window/themes/window_theme.h"
+#include "styles/style_glass_rail.h"
+#include "ax/ax_settings.h"
+#include "ax/ui/appearance/glass_rail.h"
+#include "ax/ui/appearance/glass_controls.h"
+
+#include <QtGui/QPainterPath>
+
 #include "base/options.h"
 #include "base/unixtime.h"
 #include "core/ui_integration.h"
@@ -493,12 +501,37 @@ void PaintRow(
 	if (swipeTranslation) {
 		p.translate(-swipeTranslation, 0);
 	}
-	p.fillRect(geometry, bg);
+	const auto glassTheme = AxGlass::Enabled();
+	auto highlight = QPainterPath();
+	if (glassTheme) {
+		p.fillRect(geometry, context.currentBg);
+		const auto bounds = QRectF(geometry).adjusted(
+			st::axGlassDialogInset,
+			st::axGlassDialogVerticalInset,
+			-st::axGlassDialogInset,
+			-st::axGlassDialogVerticalInset);
+		highlight.addRoundedRect(
+			bounds,
+			st::axGlassDialogRadius,
+			st::axGlassDialogRadius);
+		if (context.active || context.selected) {
+			AxGlass::PaintSelection(
+				p, highlight, bg, st::windowFg->c,
+				st::lineWidth, context.active);
+		}
+	} else {
+		p.fillRect(geometry, bg);
+	}
 	if (!(flags & Flag::TopicJumpRipple)) {
 		auto ripple = context.active
 			? st::dialogsRippleBgActive
 			: st::dialogsRippleBg;
+		p.save();
+		if (!highlight.isEmpty()) {
+			p.setClipPath(highlight, Qt::IntersectClip);
+		}
 		row->paintRipple(p, 0, 0, context.width, &ripple->c);
+		p.restore();
 	}
 
 	if (flags & Flag::SavedMessages) {

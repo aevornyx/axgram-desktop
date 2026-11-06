@@ -136,7 +136,12 @@ fragmentBoxButton: RoundButton(introFragmentButton) {
 	width: 256px;
 }
 
-newGroupDescription: InputField(defaultInputField) {
+newGroupTitle: InputField(defaultInputField) {
+	textBg: boxBg;
+	textBgActive: boxBg;
+}
+
+newGroupDescription: InputField(newGroupTitle) {
 	textMargins: margins(1px, 26px, 1px, 4px);
 	heightMax: 116px;
 }
